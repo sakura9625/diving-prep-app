@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter run *)",
+      "PowerShell(Get-Process *)",
+      "Bash(flutter pub *)"
+    ]
+  }
+}
