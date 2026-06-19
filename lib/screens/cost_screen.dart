@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
 
@@ -64,6 +63,8 @@ class CostScreen extends StatefulWidget {
 
 class _CostScreenState extends State<CostScreen>
     with SingleTickerProviderStateMixin {
+  final _db = FirebaseFirestore.instance;
+
   List<_TripEntry> _entries = [];
   bool _isLoading = true;
   late TabController _tabController;
@@ -90,43 +91,42 @@ class _CostScreenState extends State<CostScreen>
     if (!mounted) return;
     setState(() => _isLoading = true);
 
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      final results = await Future.wait([
+        _db.collection('trips').get(),
+        _db.collection('costs').get(),
+      ]);
 
-    List<Trip> trips = [];
-    final tripsRaw = prefs.getString('saved_trips');
-    if (tripsRaw != null) {
-      try {
-        final List decoded = jsonDecode(tripsRaw) as List;
-        trips = decoded
-            .map((e) => Trip.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } catch (e) {
-        debugPrint('[CostScreen] saved_trips parse error: $e');
-      }
+      final tripsSnapshot = results[0] as QuerySnapshot;
+      final costsSnapshot = results[1] as QuerySnapshot;
+
+      final trips = tripsSnapshot.docs
+          .map((d) => Trip.fromJson(d.data() as Map<String, dynamic>))
+          .toList();
+
+      final costMap = <String, TripCostData>{
+        for (final d in costsSnapshot.docs)
+          d.id: TripCostData.fromJson(d.data() as Map<String, dynamic>),
+      };
+
+      final entries = trips
+          .map((t) => _TripEntry(
+                trip: t,
+                cost: costMap[t.id] ?? TripCostData(),
+              ))
+          .toList();
+
+      debugPrint('[CostScreen] loaded ${entries.length} trips');
+
+      if (!mounted) return;
+      setState(() {
+        _entries   = entries;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('[CostScreen] load error: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    final entries = <_TripEntry>[];
-    for (final trip in trips) {
-      TripCostData cost = TripCostData();
-      final costRaw = prefs.getString('trip_${trip.id}_cost');
-      if (costRaw != null) {
-        try {
-          cost = TripCostData.fromJson(
-              jsonDecode(costRaw) as Map<String, dynamic>);
-        } catch (e) {
-          debugPrint('[CostScreen] cost parse error for ${trip.id}: $e');
-        }
-      }
-      entries.add(_TripEntry(trip: trip, cost: cost));
-    }
-
-    debugPrint('[CostScreen] loaded ${entries.length} trips');
-
-    if (!mounted) return;
-    setState(() {
-      _entries = entries;
-      _isLoading = false;
-    });
   }
 
   // ─── 集計 ────────────────────────────────────────
@@ -237,8 +237,6 @@ class _CostScreenState extends State<CostScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('コストレポート'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -401,7 +399,6 @@ class _CostScreenState extends State<CostScreen>
             ],
           ),
           const SizedBox(height: 10),
-          // 凡例
           Row(
             children: [
               Container(width: 14, height: 14, color: primary.withValues(alpha: 0.65)),
@@ -466,7 +463,6 @@ class _CombinedChart extends StatelessWidget {
 
     return Stack(
       children: [
-        // ── 棒グラフ（左軸）──
         BarChart(
           BarChartData(
             maxY: maxBar.clamp(1.0, double.infinity),
@@ -547,7 +543,6 @@ class _CombinedChart extends StatelessWidget {
           ),
         ),
 
-        // ── 折れ線グラフ（右軸）──
         if (lineValues.isNotEmpty)
           IgnorePointer(
             child: LineChart(
@@ -756,7 +751,11 @@ class _Section extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Card(child: Padding(padding: const EdgeInsets.all(16), child: child)),
+        Card(
+          elevation: 3,
+          shadowColor: Colors.black.withValues(alpha: 0.15),
+          child: Padding(padding: const EdgeInsets.all(16), child: child),
+        ),
       ],
     );
   }

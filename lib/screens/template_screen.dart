@@ -1,11 +1,7 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/template_item.dart';
 import '../utils/checklist_data.dart';
-
-const String _kCustomItems      = 'diving_prep_custom_items';
-const String _kSavedTemplates   = 'saved_templates';
 
 // ─── 画面 ─────────────────────────────────────────────────────────────────────
 
@@ -17,12 +13,14 @@ class TemplateScreen extends StatefulWidget {
 }
 
 class _TemplateScreenState extends State<TemplateScreen> {
+  final _db = FirebaseFirestore.instance;
+
   late Map<String, List<TemplateItem>> _genreItems;
   bool _isWetSuit   = true;
   bool _isOvernight = false;
   bool _isBoat      = true;
   final List<SavedTemplate> _savedTemplates = [];
-  String? _loadedTemplateName; // 読み込み中のテンプレート名（保存ダイアログの初期値に使用）
+  String? _loadedTemplateName;
 
   @override
   void initState() {
@@ -35,14 +33,13 @@ class _TemplateScreenState extends State<TemplateScreen> {
   // ─── カスタム項目の永続化 ───────────────────────────
 
   Future<void> _loadCustomItems() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kCustomItems);
-    if (raw == null) return;
     try {
-      final List data = jsonDecode(raw) as List;
+      final doc = await _db.collection('templateItems').doc('custom').get();
+      if (!doc.exists) return;
+      final items = (doc.data()!['items'] as List? ?? []);
       if (!mounted) return;
       setState(() {
-        for (final item in data) {
+        for (final item in items) {
           final genre = item['genre'] as String;
           if (_genreItems.containsKey(genre)) {
             _genreItems[genre]!.add(TemplateItem(
@@ -59,37 +56,44 @@ class _TemplateScreenState extends State<TemplateScreen> {
   }
 
   Future<void> _saveCustomItems() async {
-    final prefs = await SharedPreferences.getInstance();
     final items = _genreItems.values
         .expand((l) => l)
         .where((e) => e.isCustom)
         .map((e) => {'id': e.id, 'name': e.name, 'genre': e.genre})
         .toList();
-    await prefs.setString(_kCustomItems, jsonEncode(items));
+    await _db.collection('templateItems').doc('custom').set({'items': items});
   }
 
   // ─── テンプレート永続化 ─────────────────────────────
 
   Future<void> _loadSavedTemplates() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kSavedTemplates);
-    if (raw == null) return;
     try {
-      final List data = jsonDecode(raw) as List;
+      final snapshot = await _db.collection('templates').get();
       if (!mounted) return;
       setState(() {
         _savedTemplates
           ..clear()
-          ..addAll(data.map(
-              (e) => SavedTemplate.fromJson(e as Map<String, dynamic>)));
+          ..addAll(snapshot.docs
+              .map((d) => SavedTemplate.fromJson(d.data())));
       });
     } catch (_) {}
   }
 
   Future<void> _persistSavedTemplates() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        _kSavedTemplates, jsonEncode(_savedTemplates.map((t) => t.toJson()).toList()));
+    try {
+      final existing = await _db.collection('templates').get();
+      final existingIds = existing.docs.map((d) => d.id).toSet();
+      final currentIds  = _savedTemplates.map((t) => t.id).toSet();
+
+      final batch = _db.batch();
+      for (final id in existingIds.difference(currentIds)) {
+        batch.delete(_db.collection('templates').doc(id));
+      }
+      for (final t in _savedTemplates) {
+        batch.set(_db.collection('templates').doc(t.id), t.toJson());
+      }
+      await batch.commit();
+    } catch (_) {}
   }
 
   // ─── テンプレート操作 ───────────────────────────────
@@ -138,7 +142,6 @@ class _TemplateScreenState extends State<TemplateScreen> {
       _isOvernight = template.isOvernight;
       _isBoat      = template.isBoat;
 
-      // ベース項目を再生成してチェック状態を復元
       _genreItems = createInitialGenreItems();
       for (final items in _genreItems.values) {
         for (final item in items) {
@@ -148,7 +151,6 @@ class _TemplateScreenState extends State<TemplateScreen> {
         }
       }
 
-      // カスタム項目を復元
       for (final ci in template.customItems) {
         final genre = ci['genre']!;
         if (_genreItems.containsKey(genre)) {
@@ -278,7 +280,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
                 ));
               });
               Navigator.pop(ctx);
-              _saveCustomItems(); // fire-and-forget
+              _saveCustomItems();
             },
             child: const Text('追加'),
           ),
@@ -345,15 +347,12 @@ class _TemplateScreenState extends State<TemplateScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('準備リストの設定'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView(
               children: [
-                // 説明テキスト
                 Container(
                   color: Colors.blue[50],
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -365,7 +364,6 @@ class _TemplateScreenState extends State<TemplateScreen> {
                   ),
                 ),
 
-                // 保存済みテンプレートセクション
                 if (_savedTemplates.isNotEmpty) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
@@ -397,9 +395,8 @@ class _TemplateScreenState extends State<TemplateScreen> {
                   const Divider(height: 12),
                 ],
 
-                // トグル群
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -424,11 +421,29 @@ class _TemplateScreenState extends State<TemplateScreen> {
                             _isWetSuit = v.first;
                             _syncChecked();
                           }),
-                          style: const ButtonStyle(
-                              visualDensity: VisualDensity.compact),
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? const Color(0xFF0077B6)
+                                    : Colors.grey[200]),
+                            foregroundColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? Colors.white
+                                    : Colors.grey[700]),
+                            iconColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? Colors.white
+                                    : Colors.grey[600]),
+                            side: const WidgetStatePropertyAll(BorderSide.none),
+                            shape: const WidgetStatePropertyAll(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(24)),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
                       _ToggleLabel('旅行タイプ'),
                       SizedBox(
@@ -451,11 +466,29 @@ class _TemplateScreenState extends State<TemplateScreen> {
                             _isOvernight = v.first;
                             _syncChecked();
                           }),
-                          style: const ButtonStyle(
-                              visualDensity: VisualDensity.compact),
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? const Color(0xFF0077B6)
+                                    : Colors.grey[200]),
+                            foregroundColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? Colors.white
+                                    : Colors.grey[700]),
+                            iconColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? Colors.white
+                                    : Colors.grey[600]),
+                            side: const WidgetStatePropertyAll(BorderSide.none),
+                            shape: const WidgetStatePropertyAll(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(24)),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
                       _ToggleLabel('エントリー'),
                       SizedBox(
@@ -478,15 +511,32 @@ class _TemplateScreenState extends State<TemplateScreen> {
                             _isBoat = v.first;
                             _syncChecked();
                           }),
-                          style: const ButtonStyle(
-                              visualDensity: VisualDensity.compact),
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? const Color(0xFF0077B6)
+                                    : Colors.grey[200]),
+                            foregroundColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? Colors.white
+                                    : Colors.grey[700]),
+                            iconColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? Colors.white
+                                    : Colors.grey[600]),
+                            side: const WidgetStatePropertyAll(BorderSide.none),
+                            shape: const WidgetStatePropertyAll(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(24)),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // サマリー
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
                   child: Row(
@@ -518,7 +568,6 @@ class _TemplateScreenState extends State<TemplateScreen> {
             ),
           ),
 
-          // 保存ボタン
           Container(
             decoration: BoxDecoration(
               color: Theme.of(context).scaffoldBackgroundColor,
@@ -555,6 +604,8 @@ class _TemplateScreenState extends State<TemplateScreen> {
 
     return ExpansionTile(
       initiallyExpanded: true,
+      backgroundColor: color.withValues(alpha: 0.04),
+      collapsedBackgroundColor: color.withValues(alpha: 0.02),
       leading: CircleAvatar(radius: 8, backgroundColor: color),
       title: Row(
         children: [

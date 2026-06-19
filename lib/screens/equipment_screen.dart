@@ -1,6 +1,5 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/equipment.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
@@ -27,6 +26,16 @@ Color _alertColor(_AlertLevel level) {
   }
 }
 
+Color _typeColor(EquipmentType type) {
+  switch (type) {
+    case EquipmentType.bcd:        return const Color(0xFF0077B6);
+    case EquipmentType.regulator:  return const Color(0xFF27AE60);
+    case EquipmentType.drySuit:    return const Color(0xFF5C35D4);
+    case EquipmentType.wetSuit:    return const Color(0xFF00B4D8);
+    case EquipmentType.other:      return const Color(0xFF7F8C8D);
+  }
+}
+
 String _fmt(DateTime d) => '${d.year}年${d.month}月${d.day}日';
 
 bool _isOnOrAfter(DateTime tripDate, DateTime maintenanceDate) {
@@ -45,11 +54,11 @@ class EquipmentScreen extends StatefulWidget {
 
 class _EquipmentScreenState extends State<EquipmentScreen>
     with WidgetsBindingObserver {
-  List<Equipment> _equipments = [];
-  Map<String, int> _tripDives = {}; // equipmentId -> 旅行由来のダイブ本数合計
-  bool _isLoading = true;
+  final _db = FirebaseFirestore.instance;
 
-  static const _equipKey = 'equipment_list';
+  List<Equipment> _equipments = [];
+  Map<String, int> _tripDives = {};
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -58,7 +67,6 @@ class _EquipmentScreenState extends State<EquipmentScreen>
     _loadData();
   }
 
-  // アプリがフォアグラウンドに戻ったときに旅行データを再集計
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -76,73 +84,85 @@ class _EquipmentScreenState extends State<EquipmentScreen>
 
   Future<void> _loadData() async {
     if (mounted) setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
 
-    List<Equipment> equipments = [];
-    final raw = prefs.getString(_equipKey);
-    if (raw != null) {
-      try {
-        equipments = (jsonDecode(raw) as List)
-            .map((e) => Equipment.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } catch (_) {}
+    try {
+      final results = await Future.wait([
+        _db.collection('equipment').get(),
+        _db.collection('trips').get(),
+        _db.collection('costs').get(),
+      ]);
+
+      final equipSnapshot = results[0] as QuerySnapshot;
+      final tripsSnapshot = results[1] as QuerySnapshot;
+      final costsSnapshot = results[2] as QuerySnapshot;
+
+      final equipments = equipSnapshot.docs
+          .map((d) => Equipment.fromJson(d.data() as Map<String, dynamic>))
+          .toList();
+
+      final trips = tripsSnapshot.docs
+          .map((d) => Trip.fromJson(d.data() as Map<String, dynamic>))
+          .toList();
+
+      final costMap = <String, TripCostData>{
+        for (final d in costsSnapshot.docs)
+          d.id: TripCostData.fromJson(d.data() as Map<String, dynamic>),
+      };
+
+      final tripDives = _computeTripDives(equipments, trips, costMap);
+
+      if (!mounted) return;
+      setState(() {
+        _equipments = equipments;
+        _tripDives  = tripDives;
+        _isLoading  = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    final tripDives = await _computeTripDives(equipments, prefs);
-
-    if (!mounted) return;
-    setState(() {
-      _equipments = equipments;
-      _tripDives  = tripDives;
-      _isLoading  = false;
-    });
   }
 
   Future<void> _saveEquipments() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _equipKey,
-      jsonEncode(_equipments.map((e) => e.toJson()).toList()),
-    );
+    final batch = _db.batch();
+    for (final e in _equipments) {
+      batch.set(_db.collection('equipment').doc(e.id), e.toJson());
+    }
+    await batch.commit();
   }
 
-  // 旅行ダイブ本数のみ再集計（アプリ復帰時など）
   Future<void> _reloadTripDives() async {
     if (!mounted) return;
-    final prefs     = await SharedPreferences.getInstance();
-    final tripDives = await _computeTripDives(_equipments, prefs);
-    if (mounted) setState(() => _tripDives = tripDives);
+    try {
+      final results = await Future.wait([
+        _db.collection('trips').get(),
+        _db.collection('costs').get(),
+      ]);
+      final trips = (results[0] as QuerySnapshot).docs
+          .map((d) => Trip.fromJson(d.data() as Map<String, dynamic>))
+          .toList();
+      final costMap = <String, TripCostData>{
+        for (final d in (results[1] as QuerySnapshot).docs)
+          d.id: TripCostData.fromJson(d.data() as Map<String, dynamic>),
+      };
+      final tripDives = _computeTripDives(_equipments, trips, costMap);
+      if (mounted) setState(() => _tripDives = tripDives);
+    } catch (_) {}
   }
 
   // ─── 旅行由来ダイブ本数の集計 ────────────────────
 
-  Future<Map<String, int>> _computeTripDives(
+  Map<String, int> _computeTripDives(
     List<Equipment> equipments,
-    SharedPreferences prefs,
-  ) async {
-    // 旅行リストを取得
-    List<Trip> trips = [];
-    final tripsRaw = prefs.getString('saved_trips');
-    if (tripsRaw != null) {
-      try {
-        trips = (jsonDecode(tripsRaw) as List)
-            .map((e) => Trip.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } catch (_) {}
-    }
-
+    List<Trip> trips,
+    Map<String, TripCostData> costMap,
+  ) {
     final result = <String, int>{};
     for (final eq in equipments) {
       int total = 0;
       for (final trip in trips) {
         if (!_isOnOrAfter(trip.date, eq.lastMaintenanceDate)) continue;
-        final costRaw = prefs.getString('trip_${trip.id}_cost');
-        if (costRaw == null) continue;
-        try {
-          final cost = TripCostData.fromJson(
-              jsonDecode(costRaw) as Map<String, dynamic>);
-          total += cost.diveCount;
-        } catch (_) {}
+        final cost = costMap[trip.id];
+        if (cost != null) total += cost.diveCount;
       }
       result[eq.id] = total;
     }
@@ -188,7 +208,6 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 器材種類
                   _FieldLabel('器材種類'),
                   Container(
                     decoration: BoxDecoration(
@@ -218,7 +237,6 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // 器材名
                   _FieldLabel('器材名'),
                   TextField(
                     controller: nameCtrl,
@@ -229,7 +247,6 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // 購入日
                   _FieldLabel('購入日'),
                   _DatePickerRow(
                     value: _fmt(purchaseDate),
@@ -240,7 +257,6 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // 最終メンテナンス日
                   _FieldLabel('最終メンテナンス日'),
                   _DatePickerRow(
                     value: _fmt(maintenanceDate),
@@ -251,7 +267,6 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // 前回メンテナンスからの使用本数
                   _FieldLabel('前回メンテナンスからの使用本数'),
                   TextField(
                     controller: divesCtrl,
@@ -314,10 +329,7 @@ class _EquipmentScreenState extends State<EquipmentScreen>
     }
 
     await _saveEquipments();
-    // メンテ日変更に備えてトリップダイブ本数を再集計
-    final prefs     = await SharedPreferences.getInstance();
-    final tripDives = await _computeTripDives(_equipments, prefs);
-    if (mounted) setState(() => _tripDives = tripDives);
+    await _reloadTripDives();
   }
 
   // ─── build ───────────────────────────────────────
@@ -327,14 +339,11 @@ class _EquipmentScreenState extends State<EquipmentScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('マイ器材'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // ＋ 器材を追加ボタン
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: SizedBox(
@@ -355,7 +364,6 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                   ),
                 ),
 
-                // 器材リスト
                 Expanded(
                   child: _equipments.isEmpty
                       ? Center(
@@ -434,143 +442,140 @@ class _EquipmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasAlert = alertLevel != _AlertLevel.none;
     final e = equipment;
+    final tc = _typeColor(e.type);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (hasAlert) Container(height: 4, color: alertColor),
-
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 器材種類バッジ + 器材名 + アラート + 編集
-                Row(
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (hasAlert) Container(width: 5, color: alertColor),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(e.type.icon,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primaryContainer,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        e.type.label,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
+                    Row(
+                      children: [
+                        Icon(e.type.icon, size: 20, color: tc),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: tc,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            e.type.label,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            e.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 15),
+                          ),
+                        ),
+                        if (hasAlert)
+                          Icon(Icons.warning_amber_rounded,
+                              color: alertColor, size: 22),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          tooltip: '編集',
+                          onPressed: onEdit,
+                          visualDensity: VisualDensity.compact,
+                          color: Colors.grey[500],
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        e.name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15),
-                      ),
-                    ),
-                    if (hasAlert)
-                      Icon(Icons.warning_amber_rounded,
-                          color: alertColor, size: 22),
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      tooltip: '編集',
-                      onPressed: onEdit,
-                      visualDensity: VisualDensity.compact,
-                      color: Colors.grey[500],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                // 購入日・最終メンテ日
-                _InfoRow(
-                  icon: Icons.shopping_bag_outlined,
-                  label: '購入日',
-                  value: _fmt(e.purchaseDate),
-                ),
-                const SizedBox(height: 4),
-                _InfoRow(
-                  icon: Icons.build_outlined,
-                  label: '最終メンテ',
-                  value: _fmt(e.lastMaintenanceDate),
-                ),
-                const SizedBox(height: 12),
+                    _InfoRow(
+                      icon: Icons.shopping_bag_outlined,
+                      label: '購入日',
+                      value: _fmt(e.purchaseDate),
+                    ),
+                    const SizedBox(height: 4),
+                    _InfoRow(
+                      icon: Icons.build_outlined,
+                      label: '最終メンテ',
+                      value: _fmt(e.lastMaintenanceDate),
+                    ),
+                    const SizedBox(height: 12),
 
-                // 経過日数・ダイブ本数チップ
-                Row(
-                  children: [
-                    _StatChip(
-                      label: '経過',
-                      value: '$daysSinceMaintenance日',
-                      highlight: daysSinceMaintenance >= 365,
-                      alertColor: alertColor,
+                    Row(
+                      children: [
+                        _StatChip(
+                          label: '経過',
+                          value: '$daysSinceMaintenance日',
+                          highlight: daysSinceMaintenance >= 365,
+                          alertColor: alertColor,
+                        ),
+                        const SizedBox(width: 8),
+                        _StatChip(
+                          label: 'ダイブ',
+                          value: '$totalDives本',
+                          highlight: totalDives >= 100,
+                          alertColor: alertColor,
+                        ),
+                        if (tripDives > 0) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            '(手動${e.divesManual}＋旅行$tripDives)',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[500]),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    _StatChip(
-                      label: 'ダイブ',
-                      value: '$totalDives本',
-                      highlight: totalDives >= 100,
-                      alertColor: alertColor,
-                    ),
-                    if (tripDives > 0) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        '(手動${e.divesManual}＋旅行$tripDives)',
-                        style: TextStyle(
-                            fontSize: 10, color: Colors.grey[500]),
+
+                    if (hasAlert) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: alertColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: alertColor.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                size: 16, color: alertColor),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _alertMessage(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: alertColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ],
                 ),
-
-                // アラートメッセージ
-                if (hasAlert) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: alertColor.withValues(alpha: 0.07),
-                      borderRadius: BorderRadius.circular(6),
-                      border:
-                          Border.all(color: alertColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 14, color: alertColor),
-                        const SizedBox(width: 6),
-                        Text(
-                          _alertMessage(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: alertColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

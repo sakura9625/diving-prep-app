@@ -1,6 +1,5 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
@@ -14,6 +13,8 @@ class TravelScreen extends StatefulWidget {
 }
 
 class _TravelScreenState extends State<TravelScreen> {
+  final _db = FirebaseFirestore.instance;
+
   final List<Trip> _trips = [];
   List<SavedTemplate> _savedTemplates = [];
   List<String> _savedLocations = [];
@@ -31,43 +32,29 @@ class _TravelScreenState extends State<TravelScreen> {
 
   // ─── 旅行の永続化 ──────────────────────────────────
 
-  static const _kSavedTrips = 'saved_trips';
-  static const _kLocations  = 'saved_locations';
-  static const _kShops      = 'saved_shops';
-
   Future<void> _loadTrips() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kSavedTrips);
-    if (raw == null) return;
     try {
-      final List data = jsonDecode(raw) as List;
+      final snapshot = await _db.collection('trips').get();
       if (!mounted) return;
       setState(() {
         _trips
           ..clear()
-          ..addAll(data.map((e) => Trip.fromJson(e as Map<String, dynamic>)));
+          ..addAll(snapshot.docs.map((d) => Trip.fromJson(d.data())));
       });
     } catch (_) {}
   }
 
-  Future<void> _saveTrips() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _kSavedTrips,
-      jsonEncode(_trips.map((t) => t.toJson()).toList()),
-    );
+  Future<void> _saveTripToFirestore(Trip trip) async {
+    await _db.collection('trips').doc(trip.id).set(trip.toJson());
   }
 
   Future<void> _loadTemplates() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('saved_templates');
-    if (raw == null) return;
     try {
-      final List data = jsonDecode(raw) as List;
+      final snapshot = await _db.collection('templates').get();
       if (!mounted) return;
       setState(() {
-        _savedTemplates = data
-            .map((e) => SavedTemplate.fromJson(e as Map<String, dynamic>))
+        _savedTemplates = snapshot.docs
+            .map((d) => SavedTemplate.fromJson(d.data()))
             .toList();
       });
     } catch (_) {}
@@ -76,35 +63,49 @@ class _TravelScreenState extends State<TravelScreen> {
   // ─── 場所・ショップ履歴 ────────────────────────────
 
   Future<void> _loadHistory() async {
-    final prefs = await SharedPreferences.getInstance();
     try {
-      final locsRaw = prefs.getString(_kLocations);
-      if (locsRaw != null) {
-        _savedLocations = List<String>.from(jsonDecode(locsRaw) as List);
+      final results = await Future.wait([
+        _db.collection('history').doc('locations').get(),
+        _db.collection('history').doc('shops').get(),
+      ]);
+      if (!mounted) return;
+      final locsDoc  = results[0];
+      final shopsDoc = results[1];
+      if (locsDoc.exists) {
+        _savedLocations = List<String>.from(
+            (locsDoc.data()!['items'] as List? ?? []));
       }
-      final shopsRaw = prefs.getString(_kShops);
-      if (shopsRaw != null) {
-        _savedShops = List<String>.from(jsonDecode(shopsRaw) as List);
+      if (shopsDoc.exists) {
+        _savedShops = List<String>.from(
+            (shopsDoc.data()!['items'] as List? ?? []));
       }
     } catch (_) {}
   }
 
   Future<void> _saveHistory(String? location, String? shop) async {
-    final prefs = await SharedPreferences.getInstance();
-    bool changed = false;
+    bool locChanged  = false;
+    bool shopChanged = false;
+
     if (location != null && location.isNotEmpty &&
         !_savedLocations.contains(location)) {
       _savedLocations.insert(0, location);
-      changed = true;
+      locChanged = true;
     }
     if (shop != null && shop.isNotEmpty && !_savedShops.contains(shop)) {
       _savedShops.insert(0, shop);
-      changed = true;
+      shopChanged = true;
     }
-    if (changed) {
-      await prefs.setString(_kLocations, jsonEncode(_savedLocations));
-      await prefs.setString(_kShops, jsonEncode(_savedShops));
+
+    final futures = <Future>[];
+    if (locChanged) {
+      futures.add(_db.collection('history').doc('locations')
+          .set({'items': _savedLocations}));
     }
+    if (shopChanged) {
+      futures.add(_db.collection('history').doc('shops')
+          .set({'items': _savedShops}));
+    }
+    if (futures.isNotEmpty) await Future.wait(futures);
   }
 
   // ─── カレンダー操作 ────────────────────────────────
@@ -115,7 +116,7 @@ class _TravelScreenState extends State<TravelScreen> {
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     setState(() {
       _selectedDay = selectedDay;
-      _focusedDay = focusedDay;
+      _focusedDay  = focusedDay;
     });
 
     final trips = _tripsForDay(selectedDay);
@@ -133,7 +134,7 @@ class _TravelScreenState extends State<TravelScreen> {
         builder: (_) => TripDetailScreen(
           trip: trip,
           onTripUpdated: () {
-            _saveTrips();
+            _saveTripToFirestore(trip);
             if (mounted) setState(() {});
           },
         ),
@@ -357,19 +358,18 @@ class _TravelScreenState extends State<TravelScreen> {
                   final shop = shopCtrl.text.trim().isEmpty
                       ? null
                       : shopCtrl.text.trim();
-                  setState(() {
-                    _trips.add(Trip(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      name: name,
-                      date: selectedDate,
-                      suitType: suitType,
-                      isOvernight: isOvernight,
-                      templateName: selectedTemplateName,
-                      location: location,
-                      shopName: shop,
-                    ));
-                  });
-                  _saveTrips();
+                  final newTrip = Trip(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    name: name,
+                    date: selectedDate,
+                    suitType: suitType,
+                    isOvernight: isOvernight,
+                    templateName: selectedTemplateName,
+                    location: location,
+                    shopName: shop,
+                  );
+                  setState(() => _trips.add(newTrip));
+                  _saveTripToFirestore(newTrip);
                   _saveHistory(location, shop);
                   Navigator.pop(ctx);
                 },
@@ -385,7 +385,6 @@ class _TravelScreenState extends State<TravelScreen> {
   // ─── 旅行複製 ──────────────────────────────────────
 
   Future<void> _duplicateTrip(Trip original) async {
-    // ステップ1: 旅行名を入力
     final nameCtrl = TextEditingController(text: '${original.name}（コピー）');
     final confirmed = await showDialog<bool>(
       context: context,
@@ -428,7 +427,6 @@ class _TravelScreenState extends State<TravelScreen> {
     nameCtrl.dispose();
     if (confirmed != true || !mounted) return;
 
-    // ステップ2: 日付を選択
     final newDate = await showDatePicker(
       context: context,
       initialDate: original.date,
@@ -450,16 +448,17 @@ class _TravelScreenState extends State<TravelScreen> {
       shopName: original.shopName,
     );
 
-    // コスト情報を複製（チェックリスト状態は引き継がない）
-    final prefs = await SharedPreferences.getInstance();
-    final costRaw = prefs.getString('trip_${original.id}_cost');
-    if (costRaw != null && mounted) {
-      await prefs.setString('trip_${newId}_cost', costRaw);
-    }
+    // コスト情報をFirestoreから複製
+    try {
+      final costDoc = await _db.collection('costs').doc(original.id).get();
+      if (costDoc.exists && mounted) {
+        await _db.collection('costs').doc(newId).set(costDoc.data()!);
+      }
+    } catch (_) {}
 
     if (!mounted) return;
     setState(() => _trips.add(newTrip));
-    await _saveTrips();
+    await _saveTripToFirestore(newTrip);
   }
 
   // ─── 旅行削除 ──────────────────────────────────────
@@ -488,14 +487,14 @@ class _TravelScreenState extends State<TravelScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    // SharedPreferences から関連データも削除
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('trip_${trip.id}_cost');
-    await prefs.remove('trip_${trip.id}_checks');
+    await Future.wait([
+      _db.collection('trips').doc(trip.id).delete(),
+      _db.collection('costs').doc(trip.id).delete(),
+      _db.collection('checks').doc(trip.id).delete(),
+    ]);
 
     if (!mounted) return;
     setState(() => _trips.remove(trip));
-    await _saveTrips();
   }
 
   // ─── build ────────────────────────────────────────
@@ -512,12 +511,9 @@ class _TravelScreenState extends State<TravelScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('旅行準備'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          // カレンダー（月表示）
           TableCalendar<Trip>(
             locale: 'ja_JP',
             firstDay: DateTime.utc(2020, 1, 1),
@@ -531,12 +527,7 @@ class _TravelScreenState extends State<TravelScreen> {
             onPageChanged: (focusedDay) =>
                 setState(() => _focusedDay = focusedDay),
             calendarStyle: CalendarStyle(
-              markerDecoration: const BoxDecoration(
-                color: Colors.blue,
-                shape: BoxShape.circle,
-              ),
-              markerSize: 6.0,
-              markersMaxCount: 1,
+              markersMaxCount: 0,
               selectedDecoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary,
                 shape: BoxShape.circle,
@@ -550,6 +541,30 @@ class _TravelScreenState extends State<TravelScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            calendarBuilders: CalendarBuilders<Trip>(
+              defaultBuilder: (context, day, focusedDay) {
+                final hasTrips = _tripsForDay(day).isNotEmpty;
+                if (!hasTrips) return null;
+                return Container(
+                  margin: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: const Color(0xFF48CAE4),
+                      width: 2,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${day.day}',
+                    style: const TextStyle(
+                      color: Color(0xFF48CAE4),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                );
+              },
+            ),
             headerStyle: const HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
@@ -558,26 +573,22 @@ class _TravelScreenState extends State<TravelScreen> {
 
           const Divider(height: 1),
 
-          // ＋ 旅行を追加ボタン
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
             child: SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
+              child: FilledButton.icon(
                 onPressed: () => _showAddTripDialog(),
                 icon: const Icon(Icons.add),
                 label: const Text('旅行を追加'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  side: BorderSide(
-                      color: Theme.of(context).colorScheme.primary),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFF77F00),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
           ),
 
-          // 当月の旅行リスト
           Expanded(
             child: filteredTrips.isEmpty
                 ? Center(
@@ -631,98 +642,97 @@ class _TripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = trip.date;
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+        child: IntrinsicHeight(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // アイコン
-              CircleAvatar(
-                backgroundColor:
-                    Theme.of(context).colorScheme.primaryContainer,
-                child: Icon(
-                  Icons.scuba_diving,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // 旅行名・日付・場所
+              Container(width: 5, color: const Color(0xFF00B4D8)),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      trip.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              trip.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 17,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${d.year}年${d.month}月${d.day}日'
+                              '${trip.location != null ? "  ·  ${trip.location}" : ""}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                _StatusChip(
+                                  label: trip.suitType == SuitType.wet ? 'ウェット' : 'ドライ',
+                                  color: trip.suitType == SuitType.wet
+                                      ? const Color(0xFF0077B6)
+                                      : const Color(0xFF5C35D4),
+                                ),
+                                const SizedBox(width: 6),
+                                _StatusChip(
+                                  label: trip.isOvernight ? '宿泊' : '日帰り',
+                                  color: trip.isOvernight
+                                      ? const Color(0xFFE67E22)
+                                      : const Color(0xFF27AE60),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${d.year}年${d.month}月${d.day}日'
-                      '${trip.location != null ? "  ·  ${trip.location}" : ""}',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, size: 20, color: Colors.grey[500]),
+                        tooltip: 'メニュー',
+                        onSelected: (val) {
+                          if (val == 'duplicate') onDuplicate();
+                          if (val == 'delete')    onDelete();
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'duplicate',
+                            child: Row(
+                              children: [
+                                Icon(Icons.copy_outlined, size: 18),
+                                SizedBox(width: 10),
+                                Text('複製'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline, size: 18,
+                                    color: Colors.red[600]),
+                                const SizedBox(width: 10),
+                                Text('削除', style: TextStyle(color: Colors.red[600])),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
-              // スーツ・日程チップ
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _StatusChip(
-                    label: trip.suitType == SuitType.wet ? 'ウェット' : 'ドライ',
-                    color: trip.suitType == SuitType.wet
-                        ? Colors.blue
-                        : Colors.indigo,
-                  ),
-                  const SizedBox(height: 4),
-                  _StatusChip(
-                    label: trip.isOvernight ? '宿泊' : '日帰り',
-                    color: trip.isOvernight ? Colors.orange : Colors.green,
-                  ),
-                ],
-              ),
-
-              // ポップアップメニュー（複製・削除）
-              PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, size: 20, color: Colors.grey[500]),
-                tooltip: 'メニュー',
-                onSelected: (val) {
-                  if (val == 'duplicate') onDuplicate();
-                  if (val == 'delete')    onDelete();
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                    value: 'duplicate',
-                    child: Row(
-                      children: [
-                        Icon(Icons.copy_outlined, size: 18),
-                        SizedBox(width: 10),
-                        Text('複製'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, size: 18,
-                            color: Colors.red[600]),
-                        const SizedBox(width: 10),
-                        Text('削除', style: TextStyle(color: Colors.red[600])),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -742,16 +752,15 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        border: Border.all(color: color, width: 0.8),
-        borderRadius: BorderRadius.circular(4),
+        color: color,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
-        style: TextStyle(
-            fontSize: 11, color: color, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+            fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
       ),
     );
   }

@@ -1,6 +1,5 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 // --- データモデル ---
 class MarineLifeItem {
@@ -132,12 +131,11 @@ class MarineLifeScreen extends StatefulWidget {
 }
 
 class _MarineLifeScreenState extends State<MarineLifeScreen> {
+  final _db = FirebaseFirestore.instance;
+
   List<MarineLifeItem> _items = [];
   String _selectedCategory = 'すべて';
   bool _isLoading = true;
-
-  static const _customKey = 'marine_life_custom';
-  static const _stateKey  = 'marine_life_state';
 
   @override
   void initState() {
@@ -148,38 +146,37 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
   // ─── 永続化 ──────────────────────────────────────
 
   Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // 保存済み状態マップ
     Map<String, dynamic> stateMap = {};
-    final stateRaw = prefs.getString(_stateKey);
-    if (stateRaw != null) {
-      try {
-        stateMap = jsonDecode(stateRaw) as Map<String, dynamic>;
-      } catch (_) {}
-    }
+    List<dynamic> customList = [];
 
-    // 初期データを生成して状態を適用
+    try {
+      final results = await Future.wait([
+        _db.collection('marineLife').doc('state').get(),
+        _db.collection('marineLife').doc('custom').get(),
+      ]);
+      final stateDoc  = results[0];
+      final customDoc = results[1];
+      if (stateDoc.exists) {
+        stateMap = (stateDoc.data()!['data'] as Map<String, dynamic>?) ?? {};
+      }
+      if (customDoc.exists) {
+        customList = (customDoc.data()!['items'] as List?) ?? [];
+      }
+    } catch (_) {}
+
     final items = _createInitialData();
     for (final item in items) {
       _applyState(item, stateMap);
     }
 
-    // カスタムアイテムを追加
-    final customRaw = prefs.getString(_customKey);
-    if (customRaw != null) {
-      try {
-        final List data = jsonDecode(customRaw) as List;
-        for (final e in data) {
-          final item = MarineLifeItem(
-            name:     e['name']     as String,
-            category: e['category'] as String,
-            isCustom: true,
-          );
-          _applyState(item, stateMap);
-          items.add(item);
-        }
-      } catch (_) {}
+    for (final e in customList) {
+      final item = MarineLifeItem(
+        name:     e['name']     as String,
+        category: e['category'] as String,
+        isCustom: true,
+      );
+      _applyState(item, stateMap);
+      items.add(item);
     }
 
     if (!mounted) return;
@@ -192,14 +189,12 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
   void _applyState(MarineLifeItem item, Map<String, dynamic> stateMap) {
     final s = stateMap['${item.category}:${item.name}'] as Map<String, dynamic>?;
     if (s == null) return;
-    item.isSeen      = (s['isSeen']       as bool?)   ?? false;
+    item.isSeen       = (s['isSeen']       as bool?)   ?? false;
     item.seenLocation = (s['seenLocation'] as String?) ?? '';
     item.seenPeriod   = (s['seenPeriod']   as String?) ?? '';
   }
 
   Future<void> _saveData() async {
-    final prefs = await SharedPreferences.getInstance();
-
     final stateMap = <String, dynamic>{};
     for (final item in _items) {
       stateMap['${item.category}:${item.name}'] = {
@@ -208,13 +203,16 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
         'seenPeriod':   item.seenPeriod,
       };
     }
-    await prefs.setString(_stateKey, jsonEncode(stateMap));
 
     final customList = _items
         .where((e) => e.isCustom)
         .map((e) => {'name': e.name, 'category': e.category})
         .toList();
-    await prefs.setString(_customKey, jsonEncode(customList));
+
+    await Future.wait([
+      _db.collection('marineLife').doc('state').set({'data': stateMap}),
+      _db.collection('marineLife').doc('custom').set({'items': customList}),
+    ]);
   }
 
   // ─── 操作 ────────────────────────────────────────
@@ -366,17 +364,15 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('見たい生物'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
           // カテゴリフィルター
           SizedBox(
-            height: 52,
+            height: 58,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               itemCount: _categories.length,
               itemBuilder: (_, i) {
                 final cat      = _categories[i];
@@ -388,8 +384,9 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
                     selected: selected,
                     onSelected: (_) =>
                         setState(() => _selectedCategory = cat),
-                    selectedColor:
-                        Theme.of(context).colorScheme.primaryContainer,
+                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   ),
                 );
               },
@@ -449,7 +446,6 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
                           ],
                         )),
 
-                    // ＋ 生物を追加ボタン
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 6),
@@ -546,7 +542,12 @@ class _MarineLifeTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      // カスタムアイテムのヒント
+                      if (item.isSeen)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Icon(Icons.check_circle,
+                              size: 20, color: Colors.green[600]),
+                        ),
                       if (item.isCustom)
                         Padding(
                           padding: const EdgeInsets.only(right: 4),

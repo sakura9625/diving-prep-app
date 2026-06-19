@@ -1,6 +1,5 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
@@ -23,6 +22,8 @@ class TripDetailScreen extends StatefulWidget {
 
 class _TripDetailScreenState extends State<TripDetailScreen>
     with SingleTickerProviderStateMixin {
+  final _db = FirebaseFirestore.instance;
+
   // チェックリスト
   Map<String, List<TemplateItem>> _genreItems = {};
   bool _isBoat     = true;
@@ -41,8 +42,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
   bool get _isWet       => widget.trip.suitType == SuitType.wet;
   bool get _isOvernight => widget.trip.isOvernight;
-  String get _checksKey => 'trip_${widget.trip.id}_checks';
-  String get _costKey   => 'trip_${widget.trip.id}_cost';
 
   @override
   void initState() {
@@ -68,7 +67,17 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
   Future<void> _loadData({bool silent = false}) async {
     if (!silent && mounted) setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
+
+    // チェックリスト・コストを並列読み込み
+    final results = await Future.wait([
+      _db.collection('templates').get(),
+      _db.collection('checks').doc(widget.trip.id).get(),
+      _db.collection('costs').doc(widget.trip.id).get(),
+    ]);
+
+    final templatesSnapshot = results[0] as QuerySnapshot;
+    final checksDoc         = results[1] as DocumentSnapshot;
+    final costDoc           = results[2] as DocumentSnapshot;
 
     // ── チェックリスト ──
     Map<String, List<TemplateItem>> genreItems = {};
@@ -77,17 +86,11 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
     if (widget.trip.templateName != null) {
       SavedTemplate? template;
-      final raw = prefs.getString('saved_templates');
-      if (raw != null) {
-        try {
-          final List data = jsonDecode(raw) as List;
-          final matches = data
-              .map((e) => SavedTemplate.fromJson(e as Map<String, dynamic>))
-              .where((t) => t.name == widget.trip.templateName)
-              .toList();
-          if (matches.isNotEmpty) template = matches.first;
-        } catch (_) {}
-      }
+      final matches = templatesSnapshot.docs
+          .map((d) => SavedTemplate.fromJson(d.data() as Map<String, dynamic>))
+          .where((t) => t.name == widget.trip.templateName)
+          .toList();
+      if (matches.isNotEmpty) template = matches.first;
 
       if (template != null) {
         genreItems = createInitialGenreItems();
@@ -109,19 +112,17 @@ class _TripDetailScreenState extends State<TripDetailScreen>
           }
         }
 
-        final tripChecksRaw = prefs.getString(_checksKey);
-        if (tripChecksRaw != null) {
-          try {
-            final Map<String, dynamic> saved =
-                jsonDecode(tripChecksRaw) as Map<String, dynamic>;
-            for (final items in genreItems.values) {
-              for (final item in items) {
-                if (saved.containsKey(item.id)) {
-                  item.isChecked = saved[item.id] as bool;
-                }
+        if (checksDoc.exists) {
+          final saved =
+              (checksDoc.data()! as Map<String, dynamic>)['data']
+                  as Map<String, dynamic>? ?? {};
+          for (final items in genreItems.values) {
+            for (final item in items) {
+              if (saved.containsKey(item.id)) {
+                item.isChecked = saved[item.id] as bool;
               }
             }
-          } catch (_) {}
+          }
         }
 
         isBoat = template.isBoat;
@@ -129,15 +130,14 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       }
     }
 
-    // ── コスト（再ロード時はコントローラーをリセット）──
+    // ── コスト ──
     for (final c in _legAmountCtrls) { c.dispose(); }
     _legAmountCtrls.clear();
 
     TripCostData cost = TripCostData();
-    final costRaw = prefs.getString(_costKey);
-    if (costRaw != null) {
+    if (costDoc.exists) {
       try {
-        cost = TripCostData.fromJson(jsonDecode(costRaw) as Map<String, dynamic>);
+        cost = TripCostData.fromJson(costDoc.data()! as Map<String, dynamic>);
       } catch (_) {}
     }
 
@@ -169,15 +169,14 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     for (final items in _genreItems.values) {
       for (final i in items) { allChecks[i.id] = i.isChecked; }
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_checksKey, jsonEncode(allChecks));
+    await _db.collection('checks').doc(widget.trip.id)
+        .set({'data': allChecks});
   }
 
   // ─── コスト操作 ──────────────────────────────────
 
   Future<void> _saveCost() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_costKey, jsonEncode(_cost.toJson()));
+    await _db.collection('costs').doc(widget.trip.id).set(_cost.toJson());
   }
 
   void _addLeg(String direction) {
@@ -200,36 +199,33 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   // ─── 編集ダイアログ ──────────────────────────────
 
   Future<void> _showEditDialog() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // テンプレート一覧を読み込み
     List<SavedTemplate> templates = [];
-    final tmplRaw = prefs.getString('saved_templates');
-    if (tmplRaw != null) {
-      try {
-        templates = (jsonDecode(tmplRaw) as List)
-            .map((e) => SavedTemplate.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } catch (_) {}
-    }
-
-    // 場所・ショップ履歴を読み込み
     List<String> locationHistory = [];
     List<String> shopHistory = [];
+
     try {
-      final locsRaw = prefs.getString('saved_locations');
-      if (locsRaw != null) {
-        locationHistory = List<String>.from(jsonDecode(locsRaw) as List);
+      final results = await Future.wait([
+        _db.collection('templates').get(),
+        _db.collection('history').doc('locations').get(),
+        _db.collection('history').doc('shops').get(),
+      ]);
+      templates = (results[0] as QuerySnapshot).docs
+          .map((d) => SavedTemplate.fromJson(d.data() as Map<String, dynamic>))
+          .toList();
+      final locsDoc = results[1] as DocumentSnapshot;
+      if (locsDoc.exists) {
+        locationHistory = List<String>.from(
+            (locsDoc.data()! as Map<String, dynamic>)['items'] as List? ?? []);
       }
-      final shopsRaw = prefs.getString('saved_shops');
-      if (shopsRaw != null) {
-        shopHistory = List<String>.from(jsonDecode(shopsRaw) as List);
+      final shopsDoc = results[2] as DocumentSnapshot;
+      if (shopsDoc.exists) {
+        shopHistory = List<String>.from(
+            (shopsDoc.data()! as Map<String, dynamic>)['items'] as List? ?? []);
       }
     } catch (_) {}
 
     if (!mounted) return;
 
-    // ダイアログ内状態
     String? editTemplateName = widget.trip.templateName;
     DateTime editDate        = widget.trip.date;
     SuitType editSuitType    = widget.trip.suitType;
@@ -248,7 +244,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 旅行名
                 TextField(
                   controller: nameCtrl,
                   autofocus: true,
@@ -259,7 +254,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 ),
                 const SizedBox(height: 14),
 
-                // 場所
                 _HistorySuggestField(
                   ctrl: locationCtrl,
                   label: '場所（任意）',
@@ -268,7 +262,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 ),
                 const SizedBox(height: 14),
 
-                // ショップ
                 _HistorySuggestField(
                   ctrl: shopCtrl,
                   label: 'ショップ名（任意）',
@@ -277,7 +270,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 ),
                 const SizedBox(height: 20),
 
-                // テンプレート
                 const Text(
                   '準備リストテンプレート',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -325,7 +317,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 ),
                 const SizedBox(height: 20),
 
-                // 日付
                 const Text(
                   '日付',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -369,7 +360,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 ),
                 const SizedBox(height: 20),
 
-                // スーツ種類
                 const Text(
                   'スーツ種類',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -394,7 +384,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 ),
                 const SizedBox(height: 20),
 
-                // 日程
                 const Text(
                   '日程',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -456,7 +445,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       locationCtrl.dispose();
       shopCtrl.dispose();
 
-      // Trip を更新
       widget.trip.name         = newName;
       widget.trip.date         = editDate;
       widget.trip.suitType     = editSuitType;
@@ -465,25 +453,25 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       widget.trip.location     = newLocation;
       widget.trip.shopName     = newShop;
 
-      // 場所・ショップ履歴を保存
-      await _saveHistory(prefs, newLocation, locationHistory, 'saved_locations');
-      await _saveHistory(prefs, newShop,     shopHistory,     'saved_shops');
+      await Future.wait([
+        _saveHistoryItem(newLocation, locationHistory, 'locations'),
+        _saveHistoryItem(newShop, shopHistory, 'shops'),
+      ]);
 
       if (!mounted) return;
-      widget.onTripUpdated?.call(); // 親が saveTrips() を実行
-      _loadData(silent: true);     // チェックリストを再構築（テンプレート変更対応）
+      widget.onTripUpdated?.call();
+      _loadData(silent: true);
     });
   }
 
-  Future<void> _saveHistory(
-    SharedPreferences prefs,
+  Future<void> _saveHistoryItem(
     String? value,
     List<String> list,
-    String key,
+    String docId,
   ) async {
     if (value == null || value.isEmpty || list.contains(value)) return;
     list.insert(0, value);
-    await prefs.setString(key, jsonEncode(list));
+    await _db.collection('history').doc(docId).set({'items': list});
   }
 
   // ─── ヘルパー ─────────────────────────────────────
@@ -518,7 +506,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.trip.name),
-        backgroundColor: primary,
+        backgroundColor: const Color(0xFF48CAE4),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -782,7 +770,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
           ),
           const SizedBox(height: 12),
 
-          // 基本費用カード
           Card(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -826,7 +813,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             ),
           ),
 
-          // 交通費
           const SizedBox(height: 16),
           Text(
             '交通費',
@@ -870,7 +856,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             ],
           ),
 
-          // 合計サマリー
           const SizedBox(height: 16),
           _buildCostSummary(primary),
         ],
