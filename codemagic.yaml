@@ -6,6 +6,9 @@ workflows:
       flutter: 3.44.2
       xcode: 16.4
       cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.sakura9625.divingprepapp
     scripts:
       - name: Set up Flutter
         script: |
@@ -16,11 +19,14 @@ workflows:
           cd ios && pod install
       - name: Build iOS
         script: |
-          flutter build ios --release --no-codesign
+          flutter build ipa --release
     artifacts:
-      - build/ios/iphoneos/Runner.app
+      - build/ios/ipa/*.ipa
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        beta_groups:
+          - Internal Testers
