@@ -7,12 +7,13 @@ workflows:
       xcode: 16.4
       cocoapods: default
     scripts:
-      - name: Get Flutter packages
-        script: flutter packages pub get
+      - name: Set up Flutter
+        script: |
+          flutter --version
+          flutter pub get
       - name: Pod install
         script: |
-          cd ios
-          pod install
+          cd ios && pod install
       - name: Build iOS
         script: |
           flutter build ios --release --no-codesign
