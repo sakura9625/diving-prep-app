@@ -286,7 +286,7 @@ class _MainNavigationState extends State<MainNavigation> {
           onTap: _onItemTapped,
           items: [
             _navItem(Icons.flight_outlined, Icons.flight, '旅行準備', 0),
-            _navItem(Icons.pool_outlined, Icons.pool, '器材', 1),
+            _navItem(Icons.build_outlined, Icons.build, '器材', 1),
             _navItem(Icons.water_outlined, Icons.water, '生物クエスト', 2),
             _navItem(Icons.bar_chart_outlined, Icons.bar_chart, 'コスト', 3),
             _navItem(Icons.checklist_outlined, Icons.checklist, 'テンプレート', 4),
