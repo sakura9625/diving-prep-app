@@ -17,9 +17,13 @@ workflows:
       - name: Pod install
         script: |
           cd ios && pod install
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
       - name: Build iOS
         script: |
-          flutter build ipa --release
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
