@@ -384,6 +384,16 @@ class _EquipmentScreenState extends State<EquipmentScreen>
               emoji: '🤿',
             );
           }),
+          const ColoredBox(
+            color: Color(0xFFE8F8FC),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'マイ器材のメンテナンス状況を管理できます。\n最終メンテナンスから1年以上、または100本以上でアラートをお知らせします。',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0)),
+              ),
+            ),
+          ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

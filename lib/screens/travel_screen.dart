@@ -521,6 +521,16 @@ class _TravelScreenState extends State<TravelScreen> {
             subtitle: _trips.isEmpty ? '日付をタップして旅行予定を追加' : '旅行の準備を進めましょう',
             emoji: '✈️',
           ),
+          const ColoredBox(
+            color: Color(0xFFE8F8FC),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'ダイビング旅行の準備リストが作れます。\n日付をタップして旅行予定を追加しましょう。\nコスト管理や本数カウントもできます。',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0)),
+              ),
+            ),
+          ),
           ColoredBox(color: Colors.white, child: TableCalendar<Trip>(
             locale: 'ja_JP',
             firstDay: DateTime.utc(2020, 1, 1),

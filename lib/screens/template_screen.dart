@@ -447,6 +447,16 @@ class _TemplateScreenState extends State<TemplateScreen> {
                   subtitle: '$totalChk / $totalReq 項目チェック済み',
                   emoji: '📋',
                 ),
+                const ColoredBox(
+                  color: Color(0xFFE8F8FC),
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      '準備リストのテンプレートを作成・保存できます。\nテンプレートを旅行に適用すると、準備リストを自動生成できます。',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0)),
+                    ),
+                  ),
+                ),
 
                 if (_savedTemplates.isNotEmpty) ...[
                   Padding(

@@ -254,6 +254,16 @@ class _CostScreenState extends State<CostScreen>
             subtitle: _isLoading ? '' : '総ダイブ $_totalDives 本 · 単価 ${_totalDives > 0 ? _yen(_avgCostPerDive) : "---"}',
             emoji: '💰',
           ),
+          const ColoredBox(
+            color: Color(0xFFE8F8FC),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                '旅行ごとのダイビングコストを自動集計します。\n累計費用・ダイブ単価・場所別・月別のレポートを確認できます。',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0)),
+              ),
+            ),
+          ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

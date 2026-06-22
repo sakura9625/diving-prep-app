@@ -3,7 +3,11 @@
     "allow": [
       "Bash(flutter run *)",
       "PowerShell(Get-Process *)",
-      "Bash(flutter pub *)"
+      "Bash(flutter pub *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(flutter *)",
+      "Bash(git add *)",
+      "Bash(git push *)"
     ]
   }
 }

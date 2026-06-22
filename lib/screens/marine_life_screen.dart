@@ -403,6 +403,16 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
             subtitle: '出会えた生物にチェックを入れましょう',
             emoji: '🐠',
           ),
+          const ColoredBox(
+            color: Color(0xFFE8F8FC),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'ダイビングで見たい生物をリストアップできます。\n出会えた生物にチェックを入れて、場所や時期を記録しましょう。',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0)),
+              ),
+            ),
+          ),
           // カテゴリフィルター
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
