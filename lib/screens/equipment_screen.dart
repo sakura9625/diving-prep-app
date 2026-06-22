@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/equipment.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
+import '../widgets/sky_card.dart';
 
 // --- アラートレベル ---
 enum _AlertLevel { none, orange, red }
@@ -20,19 +21,30 @@ _AlertLevel _alertLevel(Equipment e, int totalDives) {
 
 Color _alertColor(_AlertLevel level) {
   switch (level) {
-    case _AlertLevel.orange: return Colors.orange;
-    case _AlertLevel.red:    return Colors.red;
+    case _AlertLevel.orange: return const Color(0xFFFF9340);
+    case _AlertLevel.red:    return const Color(0xFFFF5B5B);
     case _AlertLevel.none:   return Colors.transparent;
   }
 }
 
-Color _typeColor(EquipmentType type) {
+
+Color _typeBgColor(EquipmentType type) {
   switch (type) {
-    case EquipmentType.bcd:        return const Color(0xFF0077B6);
-    case EquipmentType.regulator:  return const Color(0xFF27AE60);
-    case EquipmentType.drySuit:    return const Color(0xFF5C35D4);
-    case EquipmentType.wetSuit:    return const Color(0xFF00B4D8);
-    case EquipmentType.other:      return const Color(0xFF7F8C8D);
+    case EquipmentType.bcd:       return const Color(0xFFE6F8FC);
+    case EquipmentType.regulator: return const Color(0xFFEEFACC);
+    case EquipmentType.drySuit:   return const Color(0xFFF1EEFF);
+    case EquipmentType.wetSuit:   return const Color(0xFFE6F8FC);
+    case EquipmentType.other:     return const Color(0xFFF2F2F2);
+  }
+}
+
+Color _typeFgColor(EquipmentType type) {
+  switch (type) {
+    case EquipmentType.bcd:       return const Color(0xFF1A7A94);
+    case EquipmentType.regulator: return const Color(0xFF5A8A00);
+    case EquipmentType.drySuit:   return const Color(0xFF6D43D4);
+    case EquipmentType.wetSuit:   return const Color(0xFF1A7A94);
+    case EquipmentType.other:     return const Color(0xFF5A5A5A);
   }
 }
 
@@ -174,7 +186,7 @@ class _EquipmentScreenState extends State<EquipmentScreen>
   Future<void> _showEquipmentDialog({Equipment? equipment}) async {
     final isEdit         = equipment != null;
     var selectedType     = isEdit ? equipment.type : EquipmentType.bcd;
-    var purchaseDate     = isEdit ? equipment.purchaseDate : DateTime.now();
+    DateTime? purchaseDate = isEdit ? equipment.purchaseDate : null;
     var maintenanceDate  = isEdit ? equipment.lastMaintenanceDate : DateTime.now();
     final nameCtrl       = TextEditingController(text: isEdit ? equipment.name : '');
     final divesCtrl      = TextEditingController(
@@ -247,13 +259,29 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  _FieldLabel('購入日'),
-                  _DatePickerRow(
-                    value: _fmt(purchaseDate),
-                    onTap: () => pickDate(
-                      initial: purchaseDate,
-                      onPicked: (d) => setDs(() => purchaseDate = d),
-                    ),
+                  _FieldLabel('購入日（任意）'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DatePickerRow(
+                          value: purchaseDate != null
+                              ? _fmt(purchaseDate!)
+                              : '未設定',
+                          onTap: () => pickDate(
+                            initial: purchaseDate ?? DateTime.now(),
+                            onPicked: (d) => setDs(() => purchaseDate = d),
+                          ),
+                        ),
+                      ),
+                      if (purchaseDate != null)
+                        IconButton(
+                          icon: const Icon(Icons.clear,
+                              size: 18, color: Color(0xFF6B8FA0)),
+                          tooltip: 'クリア',
+                          onPressed: () =>
+                              setDs(() => purchaseDate = null),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
@@ -340,25 +368,40 @@ class _EquipmentScreenState extends State<EquipmentScreen>
       appBar: AppBar(
         title: const Text('マイ器材'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Builder(builder: (ctx) {
+            final alertCount = _equipments.where((e) {
+              final td = (_tripDives[e.id] ?? 0) + e.divesManual;
+              return _alertLevel(e, td) != _AlertLevel.none;
+            }).length;
+            return SkyCard(
+              title: 'マイ器材 ${_equipments.length}点',
+              subtitle: alertCount > 0
+                ? '⚠ $alertCount点のメンテナンスを確認してください'
+                : '器材を管理しましょう',
+              emoji: '🤿',
+            );
+          }),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => _showEquipmentDialog(),
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(Icons.add, size: 16, color: Color(0xFF4EC8E8)),
                       label: const Text('器材を追加'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor:
-                            Theme.of(context).colorScheme.primary,
-                        side: BorderSide(
-                            color: Theme.of(context).colorScheme.primary),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        foregroundColor: const Color(0xFF4EC8E8),
+                        side: const BorderSide(color: Color(0xFF4EC8E8)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ),
@@ -370,12 +413,13 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.backpack,
-                                  size: 56, color: Colors.grey[300]),
+                              const Icon(Icons.backpack,
+                                  size: 48,
+                                  color: Color(0xFFB0CDD5)),
                               const SizedBox(height: 12),
-                              Text('器材を追加してください',
+                              const Text('器材を追加してください',
                                   style: TextStyle(
-                                      color: Colors.grey[500],
+                                      color: Color(0xFF6B8FA0),
                                       fontSize: 14)),
                             ],
                           ),
@@ -405,6 +449,9 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                 ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -442,7 +489,6 @@ class _EquipmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasAlert = alertLevel != _AlertLevel.none;
     final e = equipment;
-    final tc = _typeColor(e.type);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -460,20 +506,20 @@ class _EquipmentCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(e.type.icon, size: 20, color: tc),
+                        Icon(e.type.icon, size: 20, color: _typeFgColor(e.type)),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: tc,
+                            color: _typeBgColor(e.type),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             e.type.label,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: Colors.white,
+                              color: _typeFgColor(e.type),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -494,20 +540,22 @@ class _EquipmentCard extends StatelessWidget {
                           tooltip: '編集',
                           onPressed: onEdit,
                           visualDensity: VisualDensity.compact,
-                          color: Colors.grey[500],
+                          color: const Color(0xFF6B8FA0),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
 
                     _InfoRow(
-                      icon: Icons.shopping_bag_outlined,
+                      icon: const Icon(Icons.shopping_bag_outlined, size: 14, color: Color(0xFF6B8FA0)),
                       label: '購入日',
-                      value: _fmt(e.purchaseDate),
+                      value: e.purchaseDate != null
+                          ? _fmt(e.purchaseDate!)
+                          : '-',
                     ),
                     const SizedBox(height: 4),
                     _InfoRow(
-                      icon: Icons.build_outlined,
+                      icon: const Icon(Icons.build_outlined, size: 14, color: Color(0xFF6B8FA0)),
                       label: '最終メンテ',
                       value: _fmt(e.lastMaintenanceDate),
                     ),
@@ -588,18 +636,18 @@ class _InfoRow extends StatelessWidget {
     required this.label,
     required this.value,
   });
-  final IconData icon;
-  final String   label;
-  final String   value;
+  final Widget icon;
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.grey[500]),
+        icon,
         const SizedBox(width: 4),
         Text('$label：',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B8FA0))),
         Text(value, style: const TextStyle(fontSize: 12)),
       ],
     );
@@ -633,12 +681,16 @@ class _StatChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (highlight) ...[
+            Icon(Icons.warning_amber_rounded, size: 12, color: fg),
+            const SizedBox(width: 4),
+          ],
           Text('$label ', style: TextStyle(fontSize: 11, color: fg)),
           Text(value,
               style: TextStyle(

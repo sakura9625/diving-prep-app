@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
+import '../widgets/sky_card.dart';
 import 'trip_detail_screen.dart';
 
 class TravelScreen extends StatefulWidget {
@@ -513,8 +514,14 @@ class _TravelScreenState extends State<TravelScreen> {
         title: const Text('旅行準備'),
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TableCalendar<Trip>(
+          SkyCard(
+            title: _trips.isEmpty ? '旅行を追加しましょう' : '${_trips.length}件の旅行予定',
+            subtitle: _trips.isEmpty ? '日付をタップして旅行予定を追加' : '旅行の準備を進めましょう',
+            emoji: '✈️',
+          ),
+          ColoredBox(color: Colors.white, child: TableCalendar<Trip>(
             locale: 'ja_JP',
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
@@ -549,7 +556,7 @@ class _TravelScreenState extends State<TravelScreen> {
                   margin: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: const Color(0xFF48CAE4),
+                      color: const Color(0xFF4EC8E8),
                       width: 2,
                     ),
                     shape: BoxShape.circle,
@@ -558,7 +565,7 @@ class _TravelScreenState extends State<TravelScreen> {
                   child: Text(
                     '${day.day}',
                     style: const TextStyle(
-                      color: Color(0xFF48CAE4),
+                      color: Color(0xFF4EC8E8),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -569,7 +576,7 @@ class _TravelScreenState extends State<TravelScreen> {
               formatButtonVisible: false,
               titleCentered: true,
             ),
-          ),
+          )),
 
           const Divider(height: 1),
 
@@ -579,11 +586,13 @@ class _TravelScreenState extends State<TravelScreen> {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: () => _showAddTripDialog(),
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.add, color: Colors.white, size: 18),
                 label: const Text('旅行を追加'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFF77F00),
+                  backgroundColor: const Color(0xFFFF9340),
                   padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ),
@@ -595,20 +604,21 @@ class _TravelScreenState extends State<TravelScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.travel_explore,
-                            size: 56, color: Colors.grey[300]),
+                        const Icon(Icons.flight,
+                            size: 48,
+                            color: Color(0xFFB0CDD5)),
                         const SizedBox(height: 12),
-                        Text(
+                        const Text(
                           'この月の旅行はありません\n日付タップまたは＋ボタンで追加',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              color: Colors.grey[500], fontSize: 14),
+                              color: Color(0xFF6B8FA0), fontSize: 14),
                         ),
                       ],
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     itemCount: filteredTrips.length,
                     itemBuilder: (_, i) => _TripCard(
                       trip: filteredTrips[i],
@@ -646,95 +656,103 @@ class _TripCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 5, color: const Color(0xFF00B4D8)),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
-                  child: Row(
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            border: Border(
+              left: BorderSide(color: Color(0xFF4EC8E8), width: 5),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              trip.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 17,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${d.year}年${d.month}月${d.day}日'
-                              '${trip.location != null ? "  ·  ${trip.location}" : ""}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                _StatusChip(
-                                  label: trip.suitType == SuitType.wet ? 'ウェット' : 'ドライ',
-                                  color: trip.suitType == SuitType.wet
-                                      ? const Color(0xFF0077B6)
-                                      : const Color(0xFF5C35D4),
-                                ),
-                                const SizedBox(width: 6),
-                                _StatusChip(
-                                  label: trip.isOvernight ? '宿泊' : '日帰り',
-                                  color: trip.isOvernight
-                                      ? const Color(0xFFE67E22)
-                                      : const Color(0xFF27AE60),
-                                ),
-                              ],
-                            ),
-                          ],
+                      Text(
+                        trip.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 17,
+                          color: Color(0xFF1A3A4A),
                         ),
                       ),
-                      PopupMenuButton<String>(
-                        icon: Icon(Icons.more_vert, size: 20, color: Colors.grey[500]),
-                        tooltip: 'メニュー',
-                        onSelected: (val) {
-                          if (val == 'duplicate') onDuplicate();
-                          if (val == 'delete')    onDelete();
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                            value: 'duplicate',
-                            child: Row(
-                              children: [
-                                Icon(Icons.copy_outlined, size: 18),
-                                SizedBox(width: 10),
-                                Text('複製'),
-                              ],
-                            ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${d.year}年${d.month}月${d.day}日'
+                        '${trip.location != null ? "  ·  ${trip.location}" : ""}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFF6B8FA0)),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _StatusChip(
+                            label: trip.suitType == SuitType.wet ? 'ウェット' : 'ドライ',
+                            bg: trip.suitType == SuitType.wet ? const Color(0xFFE6F8FC) : const Color(0xFFF1EEFF),
+                            fg: trip.suitType == SuitType.wet ? const Color(0xFF1A7A94) : const Color(0xFF6D43D4),
+                            icon: trip.suitType == SuitType.wet ? Icons.waves : Icons.ac_unit,
                           ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_outline, size: 18,
-                                    color: Colors.red[600]),
-                                const SizedBox(width: 10),
-                                Text('削除', style: TextStyle(color: Colors.red[600])),
-                              ],
-                            ),
+                          const SizedBox(width: 6),
+                          _StatusChip(
+                            label: trip.isOvernight ? '宿泊' : '日帰り',
+                            bg: trip.isOvernight ? const Color(0xFFFFF0E0) : const Color(0xFFEEFACC),
+                            fg: trip.isOvernight ? const Color(0xFFC45A00) : const Color(0xFF5A8A00),
+                            icon: trip.isOvernight ? Icons.hotel : Icons.wb_sunny_outlined,
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
-              ),
-            ],
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert,
+                      size: 20,
+                      color: Color(0xFF6B8FA0)),
+                  tooltip: 'メニュー',
+                  onSelected: (val) {
+                    if (val == 'duplicate') onDuplicate();
+                    if (val == 'delete') onDelete();
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'duplicate',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.copy,
+                              size: 16,
+                              color: Color(0xFF6B8FA0)),
+                          const SizedBox(width: 10),
+                          const Text('複製'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete_outline,
+                              size: 16,
+                              color: Color(0xFFFF5B5B)),
+                          SizedBox(width: 10),
+                          Text('削除',
+                              style:
+                                  TextStyle(color: Color(0xFFFF5B5B))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -745,22 +763,27 @@ class _TripCard extends StatelessWidget {
 // ─── ステータスチップ ─────────────────────────────────────────────────────────
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.color});
+  const _StatusChip({required this.label, required this.bg, required this.fg, required this.icon});
   final String label;
-  final Color color;
+  final Color bg;
+  final Color fg;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color,
+        color: bg,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-            fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: fg),
+          const SizedBox(width: 3),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: fg)),
+        ],
       ),
     );
   }

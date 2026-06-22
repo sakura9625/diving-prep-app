@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
 import '../utils/checklist_data.dart';
+import '../widgets/sky_card.dart';
 
 // ─── 画面 ─────────────────────────────────────────────────────────────────────
 
@@ -26,9 +30,11 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
   // チェックリスト
   Map<String, List<TemplateItem>> _genreItems = {};
-  bool _isBoat     = true;
-  bool _isLoading  = true;
+  bool _isBoat      = true;
+  bool _isLoading   = true;
   bool _hasTemplate = false;
+  String _bagFilter = 'すべて';
+  List<String> _customBags = [];
 
   // コスト
   TripCostData _cost = TripCostData();
@@ -130,6 +136,24 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       }
     }
 
+    // ── バッグ割り当て ──
+    List<String> customBags = [];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('bag_assignments');
+      if (raw != null) {
+        final bagMap = Map<String, String>.from(jsonDecode(raw) as Map);
+        for (final items in genreItems.values) {
+          for (final item in items) {
+            if (bagMap.containsKey(item.id)) {
+              item.bagName = bagMap[item.id]!;
+            }
+          }
+        }
+      }
+      customBags = prefs.getStringList('custom_bag_names') ?? [];
+    } catch (_) {}
+
     // ── コスト ──
     for (final c in _legAmountCtrls) { c.dispose(); }
     _legAmountCtrls.clear();
@@ -148,6 +172,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       _isBoat      = isBoat;
       _hasTemplate = hasTemplate;
       _cost        = cost;
+      _customBags  = customBags;
       _isLoading   = false;
     });
 
@@ -506,23 +531,21 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.trip.name),
-        backgroundColor: const Color(0xFF48CAE4),
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined),
+            icon: const Icon(Icons.edit_outlined, size: 20, color: Color(0xFF6B8FA0)),
             tooltip: '編集',
             onPressed: _showEditDialog,
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          labelColor: const Color(0xFF1A3A4A),
+          unselectedLabelColor: const Color(0xFF6B8FA0),
+          indicatorColor: const Color(0xFF4EC8E8),
           tabs: const [
-            Tab(icon: Icon(Icons.checklist), text: 'チェックリスト'),
-            Tab(icon: Icon(Icons.attach_money), text: 'コスト管理'),
+            Tab(text: 'チェックリスト'),
+            Tab(text: 'コスト管理'),
           ],
         ),
       ),
@@ -560,35 +583,64 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             checked: checkedCount,
             total: activeItems.length,
             progress: progress,
-            allDone: allDone,
-            primary: primary,
           ),
         Expanded(
-          child: ListView(
+          child: Material(color: const Color(0xFFF9FEFF), child: ListView(
             children: [
+              SkyCard(
+                title: widget.trip.name,
+                subtitle: [
+                  '${widget.trip.date.year}年${widget.trip.date.month}月${widget.trip.date.day}日',
+                  if (widget.trip.location != null) widget.trip.location!,
+                ].join(' · '),
+                emoji: '🤿',
+              ),
               _buildInfoCard(),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Row(
                   children: [
-                    Icon(Icons.checklist, size: 20, color: primary),
+                    const Icon(Icons.checklist, size: 18, color: Color(0xFF4EC8E8)),
                     const SizedBox(width: 6),
-                    Text(
+                    const Text(
                       '準備リスト',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.grey[800],
-                      ),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A3A4A)),
                     ),
                   ],
                 ),
               ),
-              if (_hasTemplate)
+              if (_hasTemplate) ...[
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  child: Row(
+                    children: ['すべて', 'メッシュバッグ', 'バックパック', '旅行ケース', ..._customBags, '未設定'].map((f) {
+                      final sel = _bagFilter == f;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _bagFilter = f),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: sel ? const Color(0xFF4EC8E8) : const Color(0xFFF0FAFE),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFE8F8FC)),
+                            ),
+                            child: Text(f, style: TextStyle(
+                              fontSize: 10, fontWeight: FontWeight.w600,
+                              color: sel ? Colors.white : const Color(0xFF4EC8E8),
+                            )),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
                 ...genreOrder
                     .where((g) => (_genreItems[g]?.isNotEmpty ?? false))
-                    .map((g) => _buildGenreSection(g))
-              else
+                    .map((g) => _buildGenreSection(g)),
+              ] else
                 Padding(
                   padding: const EdgeInsets.all(32),
                   child: Center(
@@ -606,7 +658,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 ),
               const SizedBox(height: 32),
             ],
-          ),
+          )),
         ),
       ],
     );
@@ -685,12 +737,21 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   // ─── チェックリストセクション ─────────────────────
 
   Widget _buildGenreSection(String genre) {
-    final items = _genreItems[genre] ?? [];
-    final color = genreColor(genre);
-    final activeList = items
+    final allItems = _genreItems[genre] ?? [];
+    final color    = genreColor(genre);
+
+    final displayItems = _bagFilter == 'すべて'
+        ? allItems
+        : _bagFilter == '未設定'
+            ? allItems.where((e) => e.bagName.isEmpty).toList()
+            : allItems.where((e) => e.bagName == _bagFilter).toList();
+
+    if (displayItems.isEmpty) return const SizedBox.shrink();
+
+    final activeList = allItems
         .where((e) => e.isNaturallyActive(_isWet, _isOvernight, _isBoat))
         .toList();
-    final checked = activeList.where((e) => e.isChecked).length;
+    final checked    = activeList.where((e) => e.isChecked).length;
     final sectionDone =
         activeList.isNotEmpty && checked == activeList.length;
 
@@ -704,7 +765,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                   fontWeight: FontWeight.w600, fontSize: 15)),
           const SizedBox(width: 8),
           Text(
-            '$checked/${items.length}',
+            '$checked/${allItems.length}',
             style: TextStyle(
               fontSize: 12,
               color: sectionDone ? Colors.green[700] : Colors.grey[500],
@@ -713,34 +774,52 @@ class _TripDetailScreenState extends State<TripDetailScreen>
           ),
         ],
       ),
-      children: items.map((item) => _buildItemRow(item, color)).toList(),
+      children: displayItems.map((item) => _buildItemRow(item, color)).toList(),
     );
   }
 
   Widget _buildItemRow(TemplateItem item, Color color) {
-    final isActive = item.isNaturallyActive(_isWet, _isOvernight, _isBoat);
-    final isGreyed = !item.isChecked && !isActive;
+    final isActive = item.isChecked || item.isNaturallyActive(_isWet, _isOvernight, _isBoat);
+    final textColor = isActive ? const Color(0xFF1A3A4A) : const Color(0xFFB0CDD5);
+    final borderColor = isActive ? color : const Color(0xFFE8F8FC);
+    final bgColor = item.isChecked ? color.withValues(alpha: 0.12) : Colors.white;
+    final circleColor = isActive ? color : const Color(0xFFE8F8FC);
 
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      leading: Checkbox(
-        value: item.isChecked,
-        onChanged: (_) => _toggleItem(item),
-        activeColor: color,
-        side: isGreyed
-            ? const BorderSide(color: Color(0xFFBDBDBD), width: 1.2)
-            : null,
-        visualDensity: VisualDensity.compact,
-      ),
-      title: Text(
-        item.name,
-        style: TextStyle(
-          fontSize: 14,
-          color: isGreyed ? const Color(0xFFBDBDBD) : null,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: GestureDetector(
+        onTap: () => _toggleItem(item),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor, width: 1.5),
+          ),
+          child: Row(children: [
+            Container(
+              width: 16, height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: item.isChecked ? color : Colors.transparent,
+                border: Border.all(color: circleColor, width: 1.5),
+              ),
+              child: item.isChecked
+                ? const Icon(Icons.check, size: 10, color: Colors.white)
+                : null,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(item.name,
+                style: TextStyle(fontSize: 12, color: textColor)),
+            ),
+            if (item.bagName.isNotEmpty)
+              Text(item.bagName,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0))),
+          ]),
         ),
       ),
-      onTap: () => _toggleItem(item),
     );
   }
 
@@ -833,8 +912,10 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('往路を追加'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1565C0),
-                  side: const BorderSide(color: Color(0xFF1565C0)),
+                  foregroundColor: const Color(0xFF4EC8E8),
+                  side: const BorderSide(color: Color(0xFF4EC8E8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   visualDensity: VisualDensity.compact,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -846,8 +927,10 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('復路を追加'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF6A1B9A),
-                  side: const BorderSide(color: Color(0xFF6A1B9A)),
+                  foregroundColor: const Color(0xFFA78BFA),
+                  side: const BorderSide(color: Color(0xFFA78BFA)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   visualDensity: VisualDensity.compact,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -867,7 +950,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     final leg = _cost.legs[i];
     final isOutbound = leg.direction == '往路';
     final dirColor =
-        isOutbound ? const Color(0xFF1565C0) : const Color(0xFF6A1B9A);
+        isOutbound ? const Color(0xFF4EC8E8) : const Color(0xFFA78BFA);
 
     return Card(
       child: Padding(
@@ -956,13 +1039,11 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         diveCount > 0 ? (totalCost / diveCount).round() : null;
 
     return Card(
-      color: Theme.of(context)
-          .colorScheme
-          .primaryContainer
-          .withValues(alpha: 0.15),
+      color: const Color(0xFF4EC8E8).withValues(alpha: 0.06),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primary.withValues(alpha: 0.3)),
+        side: const BorderSide(
+            color: Color(0xFF4EC8E8), width: 0.5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1018,63 +1099,40 @@ class _ProgressBar extends StatelessWidget {
     required this.checked,
     required this.total,
     required this.progress,
-    required this.allDone,
-    required this.primary,
   });
   final int checked;
   final int total;
   final double progress;
-  final bool allDone;
-  final Color primary;
 
   @override
   Widget build(BuildContext context) {
-    final barColor = allDone ? Colors.green[600]! : primary;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: BoxDecoration(
-        color: allDone ? Colors.green[50] : Colors.blue[50],
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                allDone
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
-                size: 16,
-                color: barColor,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                allDone ? '全て準備完了！' : '$checked / $total 項目準備済み',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: barColor,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${(progress * 100).toInt()}%',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: allDone ? Colors.green[700] : Colors.grey[600],
-                ),
-              ),
+              Row(children: [
+                const Icon(Icons.check_circle_outline, size: 14, color: Color(0xFF4EC8E8)),
+                const SizedBox(width: 4),
+                const Text('準備状況', style: TextStyle(fontSize: 11, color: Color(0xFF4EC8E8), fontWeight: FontWeight.w600)),
+              ]),
+              Text('$checked / $total 項目',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1A3A4A))),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 6,
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation(barColor),
+              minHeight: 8,
+              backgroundColor: const Color(0xFFE8F8FC),
+              valueColor: AlwaysStoppedAnimation(
+                progress >= 1.0 ? const Color(0xFFFFD233) : const Color(0xFF4EC8E8),
+              ),
             ),
           ),
         ],

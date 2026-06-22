@@ -19,21 +19,21 @@ const List<String> genreOrder = [
 
 Color genreColor(String genre) {
   const m = {
-    '重要':           Color(0xFFE53935),
-    '飛行機':         Color(0xFF5C6BC0),
-    '服装':           Color(0xFFFF7043),
-    '生活用品':       Color(0xFF26A69A),
-    'レジャー用':     Color(0xFF66BB6A),
-    'ダイビング器材': Color(0xFF005F8A),
-    'ダイビング周辺': Color(0xFF29B6F6),
-    'カメラ':         Color(0xFFAB47BC),
-    '機器類':         Color(0xFF78909C),
-    'iPhone':         Color(0xFF546E7A),
-    'ノートPC':       Color(0xFF37474F),
-    '事前準備':       Color(0xFFF9A825),
-    'その他':         Color(0xFF8D6E63),
+    '重要':           Color(0xFFFF5B5B),
+    '飛行機':         Color(0xFF4EC8E8),
+    '服装':           Color(0xFFFF9340),
+    '生活用品':       Color(0xFF7BBF00),
+    'レジャー用':     Color(0xFF7BBF00),
+    'ダイビング器材': Color(0xFF4EC8E8),
+    'ダイビング周辺': Color(0xFF4EC8E8),
+    'カメラ':         Color(0xFFA78BFA),
+    '機器類':         Color(0xFF6B8FA0),
+    'iPhone':         Color(0xFF6B8FA0),
+    'ノートPC':       Color(0xFF6B8FA0),
+    '事前準備':       Color(0xFFF5C400),
+    'その他':         Color(0xFF6B8FA0),
   };
-  return m[genre] ?? Colors.grey;
+  return m[genre] ?? const Color(0xFF6B8FA0);
 }
 
 // 初期コンボ: ウェット × ボート × 日帰り

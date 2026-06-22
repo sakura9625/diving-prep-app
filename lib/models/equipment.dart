@@ -32,7 +32,7 @@ class Equipment {
   final String id;
   String name;
   EquipmentType type;
-  DateTime purchaseDate;
+  DateTime? purchaseDate;
   DateTime lastMaintenanceDate;
   int divesManual; // 前回メンテナンスからの使用本数（手動入力）
 
@@ -40,7 +40,7 @@ class Equipment {
     required this.id,
     required this.name,
     required this.type,
-    required this.purchaseDate,
+    this.purchaseDate,
     required this.lastMaintenanceDate,
     this.divesManual = 0,
   });
@@ -49,7 +49,7 @@ class Equipment {
     'id':                  id,
     'name':                name,
     'type':                type.name,
-    'purchaseDate':        purchaseDate.toIso8601String(),
+    'purchaseDate':        purchaseDate?.toIso8601String(),
     'lastMaintenanceDate': lastMaintenanceDate.toIso8601String(),
     'divesManual':         divesManual,
   };
@@ -61,7 +61,9 @@ class Equipment {
       (t) => t.name == (json['type'] as String? ?? ''),
       orElse: () => EquipmentType.other,
     ),
-    purchaseDate:        DateTime.parse(json['purchaseDate']        as String),
+    purchaseDate: json['purchaseDate'] != null
+        ? DateTime.parse(json['purchaseDate'] as String)
+        : null,
     lastMaintenanceDate: DateTime.parse(json['lastMaintenanceDate'] as String),
     divesManual: (json['divesManual'] as num?)?.toInt() ?? 0,
   );

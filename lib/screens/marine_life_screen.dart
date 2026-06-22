@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../widgets/sky_card.dart';
 
 // --- データモデル ---
 class MarineLifeItem {
@@ -101,24 +102,53 @@ List<MarineLifeItem> _createInitialData() => [
 
   // 体験・現象系
   MarineLifeItem(name: '夜光虫',                 category: '体験・現象系'),
-  MarineLifeItem(name: 'イワシトルネード',       category: '体験・現象系'),
+  MarineLifeItem(name: 'イワシ玉',               category: '体験・現象系'),
   MarineLifeItem(name: 'クリーニングステーション', category: '体験・現象系'),
   MarineLifeItem(name: '奄美ミステリーサークル', category: '体験・現象系'),
   MarineLifeItem(name: 'ナイトダイビング',       category: '体験・現象系'),
   MarineLifeItem(name: 'レイクダイビング',       category: '体験・現象系'),
+  MarineLifeItem(name: '沈没船',               category: '体験・現象系'),
 ];
 
-// --- カテゴリ別カラー ---
+// --- カテゴリ別カラー（ドット・ボーダー） ---
 Color _categoryColor(String category) {
   switch (category) {
     case 'かわいい系':   return const Color(0xFFFF8FAB);
-    case 'ハゼ系':       return const Color(0xFF5B9BD5);
-    case '幼魚系':       return const Color(0xFF70C56A);
-    case 'ハナダイ系':   return const Color(0xFFD97BCA);
-    case 'ウミウシ系':   return const Color(0xFF5BBAD5);
-    case '大物系':       return const Color(0xFFE57373);
-    case '体験・現象系': return const Color(0xFF9E9E9E);
-    default:             return const Color(0xFF005F8A);
+    case 'ハゼ系':       return const Color(0xFF4EC8E8);
+    case '幼魚系':       return const Color(0xFF7BBF00);
+    case 'ハナダイ系':   return const Color(0xFFD63A84);
+    case 'ウミウシ系':   return const Color(0xFFA78BFA);
+    case '大物系':       return const Color(0xFFFF9340);
+    case '体験・現象系': return const Color(0xFFF5C400);
+    default:             return const Color(0xFF4EC8E8);
+  }
+}
+
+// --- カテゴリ別チップ背景色 ---
+Color _categoryBgColor(String category) {
+  switch (category) {
+    case 'かわいい系':   return const Color(0xFFFFF0F4);
+    case 'ハゼ系':       return const Color(0xFFE6F8FC);
+    case '幼魚系':       return const Color(0xFFEEFACC);
+    case 'ハナダイ系':   return const Color(0xFFFFE8F3);
+    case 'ウミウシ系':   return const Color(0xFFF1EEFF);
+    case '大物系':       return const Color(0xFFFFF0E0);
+    case '体験・現象系': return const Color(0xFFFFF6CC);
+    default:             return const Color(0xFFE6F8FC);
+  }
+}
+
+// --- カテゴリ別チップ文字色 ---
+Color _categoryTextColor(String category) {
+  switch (category) {
+    case 'かわいい系':   return const Color(0xFFC42B5A);
+    case 'ハゼ系':       return const Color(0xFF1A7A94);
+    case '幼魚系':       return const Color(0xFF5A8A00);
+    case 'ハナダイ系':   return const Color(0xFFD63A84);
+    case 'ウミウシ系':   return const Color(0xFF6D43D4);
+    case '大物系':       return const Color(0xFFC45A00);
+    case '体験・現象系': return const Color(0xFF9A7200);
+    default:             return const Color(0xFF1A7A94);
   }
 }
 
@@ -244,17 +274,17 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
           children: [
             TextField(
               controller: locationCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '見た場所',
-                prefixIcon: Icon(Icons.place_outlined),
+                prefixIcon: const Icon(Icons.place_outlined, size: 18),
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: periodCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '見た時期',
-                prefixIcon: Icon(Icons.calendar_today_outlined),
+                prefixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
                 hintText: '例：2025年3月',
               ),
             ),
@@ -363,53 +393,79 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('見たい生物'),
+        title: const Text('生物クエスト'),
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          SkyCard(
+            title: '$totalSeen / $totalCount 種を発見済み',
+            subtitle: '出会えた生物にチェックを入れましょう',
+            emoji: '🐠',
+          ),
           // カテゴリフィルター
-          SizedBox(
-            height: 58,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              itemCount: _categories.length,
-              itemBuilder: (_, i) {
-                final cat      = _categories[i];
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: _categories.map((cat) {
                 final selected = _selectedCategory == cat;
+                final isAll = cat == 'すべて';
+                final dotColor = isAll
+                    ? const Color(0xFF4EC8E8)
+                    : _categoryColor(cat);
+                final bgColor = selected
+                    ? dotColor
+                    : (isAll ? Colors.white : _categoryBgColor(cat));
+                final textColor = selected
+                    ? Colors.white
+                    : (isAll
+                        ? const Color(0xFF4EC8E8)
+                        : _categoryTextColor(cat));
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(cat, style: const TextStyle(fontSize: 13)),
-                    selected: selected,
-                    onSelected: (_) =>
-                        setState(() => _selectedCategory = cat),
-                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedCategory = cat),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: dotColor, width: 1.2),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!isAll) ...[
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                  color: selected ? Colors.white : dotColor,
+                                  shape: BoxShape.circle),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(cat,
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: textColor)),
+                        ],
+                      ),
+                    ),
                   ),
                 );
-              },
+              }).toList(),
             ),
           ),
 
-          // 発見数サマリー
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-            child: Row(
-              children: [
-                Text(
-                  '$totalSeen／$totalCount 種を発見済み',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
           const Divider(height: 1),
 
           // アコーディオンリスト
           Expanded(
-            child: ListView(
+            child: Material(color: Colors.white, child: ListView(
               children: _visibleCategories.map((cat) {
                 final catItems = _itemsFor(cat);
                 final catSeen  = catItems.where((e) => e.isSeen).length;
@@ -451,7 +507,7 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
                           horizontal: 16, vertical: 6),
                       child: TextButton.icon(
                         onPressed: () => _showAddItemDialog(cat),
-                        icon: const Icon(Icons.add, size: 16),
+                        icon: Icon(Icons.add, size: 16, color: catColor),
                         label: const Text('生物を追加'),
                         style: TextButton.styleFrom(
                           foregroundColor: catColor,
@@ -462,7 +518,7 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
                   ],
                 );
               }).toList(),
-            ),
+            )),
           ),
         ],
       ),
@@ -492,7 +548,7 @@ class _MarineLifeTile extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -501,7 +557,7 @@ class _MarineLifeTile extends StatelessWidget {
               child: Checkbox(
                 value: item.isSeen,
                 onChanged: onToggle,
-                activeColor: Theme.of(context).colorScheme.primary,
+                activeColor: const Color(0xFF4EC8E8),
               ),
             ),
 
@@ -543,19 +599,12 @@ class _MarineLifeTile extends StatelessWidget {
                         ),
                       ),
                       if (item.isSeen)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: Icon(Icons.check_circle,
-                              size: 20, color: Colors.green[600]),
-                        ),
-                      if (item.isCustom)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: Tooltip(
-                            message: '長押しで削除',
-                            child: Icon(Icons.touch_app,
-                                size: 14, color: Colors.grey[400]),
-                          ),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(
+                              Icons.check_circle,
+                              size: 20,
+                              color: Color(0xFF4EC8E8)),
                         ),
                     ],
                   ),
@@ -595,7 +644,8 @@ class _MarineLifeTile extends StatelessWidget {
               ),
             ),
 
-            Icon(Icons.edit_outlined, size: 16, color: Colors.grey[300]),
+            const Icon(Icons.edit_outlined,
+                size: 16, color: Color(0xFFB0CDD5)),
           ],
         ),
       ),

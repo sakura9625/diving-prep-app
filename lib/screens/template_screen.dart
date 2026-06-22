@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/template_item.dart';
 import '../utils/checklist_data.dart';
+import '../widgets/sky_card.dart';
 
 // ─── 画面 ─────────────────────────────────────────────────────────────────────
 
@@ -22,12 +26,19 @@ class _TemplateScreenState extends State<TemplateScreen> {
   final List<SavedTemplate> _savedTemplates = [];
   String? _loadedTemplateName;
 
+  String _bagFilter = 'すべて';
+  Map<String, String> _bagAssignments = {};
+  Map<String, String> _masterBagDefaults = {};
+  List<String> _customBags = [];
+
   @override
   void initState() {
     super.initState();
     _genreItems = createInitialGenreItems();
     _loadCustomItems();
     _loadSavedTemplates();
+    _loadMasterBagDefaults();
+    _loadCustomBags();
   }
 
   // ─── カスタム項目の永続化 ───────────────────────────
@@ -62,6 +73,83 @@ class _TemplateScreenState extends State<TemplateScreen> {
         .map((e) => {'id': e.id, 'name': e.name, 'genre': e.genre})
         .toList();
     await _db.collection('templateItems').doc('custom').set({'items': items});
+  }
+
+  // ─── バッグ割り当て ─────────────────────────────────
+
+  Future<void> _loadMasterBagDefaults() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('master_bag_defaults');
+      if (raw == null) return;
+      final map = Map<String, String>.from(jsonDecode(raw) as Map);
+      if (!mounted) return;
+      setState(() {
+        _masterBagDefaults = map;
+        _bagAssignments = Map.from(map);
+        _applyBagAssignments();
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _saveMasterBagDefaults() async {
+    setState(() => _masterBagDefaults = Map.from(_bagAssignments));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('master_bag_defaults', jsonEncode(_bagAssignments));
+    } catch (_) {}
+    _showSnackBar('カバンのデフォルト割り当てを保存しました');
+  }
+
+  void _applyBagAssignments() {
+    for (final items in _genreItems.values) {
+      for (final item in items) {
+        if (_bagAssignments.containsKey(item.id)) {
+          item.bagName = _bagAssignments[item.id]!;
+        }
+      }
+    }
+  }
+
+  Future<void> _setBagForItem(TemplateItem item, String bagName) async {
+    setState(() {
+      item.bagName = bagName;
+      _bagAssignments[item.id] = bagName;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('bag_assignments', jsonEncode(_bagAssignments));
+    } catch (_) {}
+  }
+
+  Future<void> _loadCustomBags() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final bags = prefs.getStringList('custom_bag_names') ?? [];
+      if (!mounted) return;
+      setState(() => _customBags = bags);
+    } catch (_) {}
+  }
+
+  Future<void> _addCustomBag(String name) async {
+    setState(() => _customBags.add(name));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('custom_bag_names', _customBags);
+    } catch (_) {}
+  }
+
+  void _resetToNewTemplate() {
+    setState(() {
+      _isWetSuit          = true;
+      _isOvernight        = false;
+      _isBoat             = true;
+      _genreItems         = createInitialGenreItems();
+      _loadedTemplateName = null;
+      _bagAssignments     = Map.from(_masterBagDefaults);
+      _applyBagAssignments();
+    });
+    _showSnackBar('新規テンプレートを作成します');
   }
 
   // ─── テンプレート永続化 ─────────────────────────────
@@ -164,6 +252,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
         }
       }
 
+      _applyBagAssignments();
       _loadedTemplateName = template.name;
     });
     _showSnackBar('「${template.name}」を読み込みました');
@@ -351,30 +440,57 @@ class _TemplateScreenState extends State<TemplateScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView(
+            child: Material(color: const Color(0xFFF9FEFF), child: ListView(
               children: [
-                Container(
-                  color: Colors.blue[50],
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  child: Text(
-                    '自分用の準備リストをカスタマイズできます。\n'
-                    'チェックを入れた項目が準備リストに表示されます。\n'
-                    '複数の準備リストを保存でき、旅行準備タブで呼び出して使えます。',
-                    style: TextStyle(fontSize: 13, color: Colors.blue[900]),
-                  ),
+                SkyCard(
+                  title: '準備リストを設定',
+                  subtitle: '$totalChk / $totalReq 項目チェック済み',
+                  emoji: '📋',
                 ),
 
                 if (_savedTemplates.isNotEmpty) ...[
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-                    child: Text(
-                      '保存済みテンプレート',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
-                        letterSpacing: 0.5,
-                      ),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '保存済みテンプレート',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[600],
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            foregroundColor: const Color(0xFF4EC8E8),
+                          ),
+                          onPressed: () async {
+                            final toEdit =
+                                await Navigator.push<SavedTemplate?>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => _TemplateListScreen(
+                                  templates: _savedTemplates,
+                                  onDelete: (t) {
+                                    setState(() => _savedTemplates
+                                        .removeWhere((e) => e.id == t.id));
+                                    _persistSavedTemplates();
+                                  },
+                                ),
+                              ),
+                            );
+                            if (toEdit != null && mounted) {
+                              _loadTemplate(toEdit);
+                            }
+                          },
+                          child: const Text('一覧を見る →', style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
                     ),
                   ),
                   SizedBox(
@@ -382,14 +498,47 @@ class _TemplateScreenState extends State<TemplateScreen> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _savedTemplates.length,
+                      itemCount: _savedTemplates.length + 1,
                       separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (_, i) => _SavedTemplateCard(
-                        template: _savedTemplates[i],
-                        onTap: () => _loadTemplate(_savedTemplates[i]),
-                        onLongPress: () =>
-                            _showDeleteConfirmDialog(_savedTemplates[i]),
-                      ),
+                      itemBuilder: (_, i) {
+                        if (i == 0) {
+                          return GestureDetector(
+                            onTap: _resetToNewTemplate,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: const Color(0xFF4EC8E8),
+                                    width: 1.5),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.add,
+                                      size: 18, color: Color(0xFF4EC8E8)),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    '新規',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF4EC8E8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        final t = _savedTemplates[i - 1];
+                        return _SavedTemplateCard(
+                          template: t,
+                          onTap: () => _loadTemplate(t),
+                          onLongPress: () => _showDeleteConfirmDialog(t),
+                        );
+                      },
                     ),
                   ),
                   const Divider(height: 12),
@@ -424,7 +573,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
                           style: ButtonStyle(
                             backgroundColor: WidgetStateProperty.resolveWith((s) =>
                                 s.contains(WidgetState.selected)
-                                    ? const Color(0xFF0077B6)
+                                    ? const Color(0xFF4EC8E8)
                                     : Colors.grey[200]),
                             foregroundColor: WidgetStateProperty.resolveWith((s) =>
                                 s.contains(WidgetState.selected)
@@ -469,7 +618,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
                           style: ButtonStyle(
                             backgroundColor: WidgetStateProperty.resolveWith((s) =>
                                 s.contains(WidgetState.selected)
-                                    ? const Color(0xFF0077B6)
+                                    ? const Color(0xFF4EC8E8)
                                     : Colors.grey[200]),
                             foregroundColor: WidgetStateProperty.resolveWith((s) =>
                                 s.contains(WidgetState.selected)
@@ -514,7 +663,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
                           style: ButtonStyle(
                             backgroundColor: WidgetStateProperty.resolveWith((s) =>
                                 s.contains(WidgetState.selected)
-                                    ? const Color(0xFF0077B6)
+                                    ? const Color(0xFF4EC8E8)
                                     : Colors.grey[200]),
                             foregroundColor: WidgetStateProperty.resolveWith((s) =>
                                 s.contains(WidgetState.selected)
@@ -542,18 +691,16 @@ class _TemplateScreenState extends State<TemplateScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        allDone
-                            ? Icons.check_circle
-                            : Icons.radio_button_unchecked,
+                        allDone ? Icons.check_circle : Icons.radio_button_unchecked,
                         size: 14,
-                        color: allDone ? Colors.green[700] : Colors.grey[500],
+                        color: allDone ? const Color(0xFF4EC8E8) : Colors.grey[500],
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '$totalChk / $totalReq 項目チェック済み',
                         style: TextStyle(
                           fontSize: 13,
-                          color: allDone ? Colors.green[700] : Colors.grey[600],
+                          color: allDone ? const Color(0xFF4EC8E8) : Colors.grey[600],
                           fontWeight: allDone ? FontWeight.w600 : null,
                         ),
                       ),
@@ -563,28 +710,91 @@ class _TemplateScreenState extends State<TemplateScreen> {
 
                 const Divider(height: 8),
 
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Row(
+                    children: [
+                      'すべて',
+                      'メッシュバッグ',
+                      'バックパック',
+                      '旅行ケース',
+                      '未設定',
+                    ].map((f) {
+                      final sel = _bagFilter == f;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(
+                            f,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: sel
+                                  ? Colors.white
+                                  : const Color(0xFF4EC8E8),
+                            ),
+                          ),
+                          selected: sel,
+                          onSelected: (_) =>
+                              setState(() => _bagFilter = f),
+                          selectedColor: const Color(0xFF4EC8E8),
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(
+                              color: Color(0xFF4EC8E8), width: 0.8),
+                          checkmarkColor: Colors.white,
+                          visualDensity: VisualDensity.compact,
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+
                 ...genreOrder.map(_buildGenreSection),
               ],
-            ),
+            )),
           ),
 
           Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
+              color: Colors.white,
               border: Border(top: BorderSide(color: Colors.grey[200]!)),
             ),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _showSaveDialog,
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('このテンプレートを保存'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_bagAssignments.isNotEmpty) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _saveMasterBagDefaults,
+                      icon: const Icon(Icons.bookmark_outline, size: 16, color: Color(0xFF6B8FA0)),
+                      label: const Text('カバン割り当てをデフォルトとして保存'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF6B8FA0),
+                        side: const BorderSide(color: Color(0xFF6B8FA0)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _showSaveDialog,
+                    icon: const Icon(Icons.save_outlined, size: 18, color: Colors.white),
+                    label: const Text('このテンプレートを保存'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -593,14 +803,23 @@ class _TemplateScreenState extends State<TemplateScreen> {
   }
 
   Widget _buildGenreSection(String genre) {
-    final items   = _genreItems[genre] ?? [];
-    final color   = genreColor(genre);
-    final reqList = items
+    final allItems = _genreItems[genre] ?? [];
+    final color    = genreColor(genre);
+
+    final displayItems = _bagFilter == 'すべて'
+        ? allItems
+        : _bagFilter == '未設定'
+            ? allItems.where((e) => e.bagName.isEmpty).toList()
+            : allItems.where((e) => e.bagName == _bagFilter).toList();
+
+    if (displayItems.isEmpty && _bagFilter != 'すべて') return const SizedBox.shrink();
+
+    final reqList    = allItems
         .where((e) => e.isNaturallyActive(_isWetSuit, _isOvernight, _isBoat))
         .toList();
-    final checked = reqList.where((e) => e.isChecked).length;
-    final allDone = reqList.isNotEmpty && checked == reqList.length;
-    final totalCount = items.length;
+    final checked    = reqList.where((e) => e.isChecked).length;
+    final allDone    = reqList.isNotEmpty && checked == reqList.length;
+    final totalCount = allItems.length;
 
     return ExpansionTile(
       initiallyExpanded: true,
@@ -625,23 +844,45 @@ class _TemplateScreenState extends State<TemplateScreen> {
         ],
       ),
       children: [
-        ReorderableListView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          onReorderItem: (oldIdx, newIdx) => _reorder(genre, oldIdx, newIdx),
-          children: [
-            for (int i = 0; i < items.length; i++)
-              _ItemRow(
-                key: ValueKey(items[i].id),
-                item: items[i],
-                index: i,
-                isGreyed: _isGreyed(items[i]),
-                color: color,
-                onToggle: () => _toggle(items[i]),
-              ),
-          ],
-        ),
+        if (_bagFilter == 'すべて')
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorderItem: (oldIdx, newIdx) => _reorder(genre, oldIdx, newIdx),
+            children: [
+              for (int i = 0; i < allItems.length; i++)
+                _ItemRow(
+                  key: ValueKey(allItems[i].id),
+                  item: allItems[i],
+                  index: i,
+                  isGreyed: _isGreyed(allItems[i]),
+                  color: color,
+                  onToggle: () => _toggle(allItems[i]),
+                  onBagChanged: (bag) => _setBagForItem(allItems[i], bag),
+                  customBags: _customBags,
+                  onBagAdded: _addCustomBag,
+                ),
+            ],
+          )
+        else
+          Column(
+            children: [
+              for (final item in displayItems)
+                _ItemRow(
+                  key: ValueKey(item.id),
+                  item: item,
+                  index: allItems.indexOf(item),
+                  isGreyed: _isGreyed(item),
+                  color: color,
+                  onToggle: () => _toggle(item),
+                  onBagChanged: (bag) => _setBagForItem(item, bag),
+                  customBags: _customBags,
+                  onBagAdded: _addCustomBag,
+                  showDragHandle: false,
+                ),
+            ],
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
           child: Align(
@@ -676,13 +917,21 @@ class _ItemRow extends StatelessWidget {
     required this.isGreyed,
     required this.color,
     required this.onToggle,
+    required this.onBagChanged,
+    required this.customBags,
+    required this.onBagAdded,
+    this.showDragHandle = true,
   }) : super(key: key);
 
-  final TemplateItem item;
-  final int          index;
-  final bool         isGreyed;
-  final Color        color;
-  final VoidCallback onToggle;
+  final TemplateItem                  item;
+  final int                           index;
+  final bool                          isGreyed;
+  final Color                         color;
+  final VoidCallback                  onToggle;
+  final ValueChanged<String>          onBagChanged;
+  final List<String>                  customBags;
+  final Future<void> Function(String) onBagAdded;
+  final bool                          showDragHandle;
 
   @override
   Widget build(BuildContext context) {
@@ -725,18 +974,139 @@ class _ItemRow extends StatelessWidget {
             ),
         ],
       ),
-      subtitle: item.bagName.isNotEmpty
-          ? Text(
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (item.bagName.isNotEmpty) ...[
+            Text(
               item.bagName,
-              style: const TextStyle(fontSize: 11, color: Color(0xFFBDBDBD)),
-            )
-          : null,
-      trailing: ReorderableDragStartListener(
-        index: index,
-        child: const Icon(Icons.drag_handle,
-            color: Color(0xFFBDBDBD), size: 20),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0)),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(width: 4),
+          ],
+          GestureDetector(
+            onTap: () => _showBagPicker(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Icon(
+                Icons.shopping_bag_outlined,
+                size: 18,
+                color: item.bagName.isNotEmpty
+                    ? const Color(0xFF4EC8E8)
+                    : const Color(0xFFBDBDBD),
+              ),
+            ),
+          ),
+          if (showDragHandle)
+            ReorderableDragStartListener(
+              index: index,
+              child: const Icon(
+                  Icons.drag_handle, color: Color(0xFFBDBDBD), size: 20),
+            ),
+        ],
       ),
     );
+  }
+
+  Future<void> _showBagPicker(BuildContext context) async {
+    const defaultOptions = ['メッシュバッグ', 'バックパック', '旅行ケース', '未設定'];
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDs) {
+          final allOptions = [...defaultOptions, ...customBags];
+          return SimpleDialog(
+            title: const Text('バッグを選択'),
+            children: [
+              for (final bag in allOptions)
+                SimpleDialogOption(
+                  onPressed: () =>
+                      Navigator.pop(ctx, bag == '未設定' ? '' : bag),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.shopping_bag_outlined,
+                        size: 18,
+                        color: (bag == item.bagName ||
+                                (bag == '未設定' && item.bagName.isEmpty))
+                            ? const Color(0xFF4EC8E8)
+                            : Colors.grey[600],
+                      ),
+                      const SizedBox(width: 12),
+                      Text(bag, style: const TextStyle(fontSize: 14)),
+                      const Spacer(),
+                      if (bag == item.bagName ||
+                          (bag == '未設定' && item.bagName.isEmpty))
+                        const Icon(
+                            Icons.check, size: 16, color: Color(0xFF4EC8E8)),
+                    ],
+                  ),
+                ),
+              const Divider(height: 1),
+              SimpleDialogOption(
+                onPressed: () async {
+                  final newBag = await _showAddBagDialog(ctx);
+                  if (newBag != null && newBag.isNotEmpty) {
+                    await onBagAdded(newBag);
+                    setDs(() {});
+                  }
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.add, size: 18, color: Color(0xFF4EC8E8)),
+                    SizedBox(width: 12),
+                    Text(
+                      'カバンを追加',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF4EC8E8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (result != null) onBagChanged(result);
+  }
+
+  static Future<String?> _showAddBagDialog(BuildContext context) async {
+    final ctrl = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('カバン名を入力'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'カバン名',
+            hintText: '例：フィッシュアイバッグ',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = ctrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(ctx, name);
+            },
+            child: const Text('追加'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return result;
   }
 }
 
@@ -754,49 +1124,165 @@ class _SavedTemplateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context)
-              .colorScheme
-              .primaryContainer
-              .withValues(alpha: 0.25),
-          border: Border.all(color: primary.withValues(alpha: 0.4)),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  template.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: primary,
+      child: SizedBox(
+        width: 148,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE8F8FC)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 4, color: const Color(0xFF4EC8E8)),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        template.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: Color(0xFF1A3A4A),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${template.isWetSuit ? "ウェット" : "ドライ"} · '
+                        '${template.isOvernight ? "宿泊" : "日帰り"}',
+                        style: const TextStyle(fontSize: 10, color: Color(0xFF6B8FA0)),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(Icons.touch_app, size: 11, color: primary.withValues(alpha: 0.5)),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(
-              '${template.isWetSuit ? "ウェット" : "ドライ"} · '
-              '${template.isOvernight ? "宿泊" : "日帰り"} · '
-              '${template.isBoat ? "ボート" : "ビーチ"}',
-              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+// ─── テンプレート一覧画面 ─────────────────────────────────────────────────────
+
+class _TemplateListScreen extends StatefulWidget {
+  const _TemplateListScreen({
+    required this.templates,
+    required this.onDelete,
+  });
+  final List<SavedTemplate> templates;
+  final void Function(SavedTemplate) onDelete;
+
+  @override
+  State<_TemplateListScreen> createState() => _TemplateListScreenState();
+}
+
+class _TemplateListScreenState extends State<_TemplateListScreen> {
+  late List<SavedTemplate> _templates;
+
+  @override
+  void initState() {
+    super.initState();
+    _templates = List.from(widget.templates);
+  }
+
+  Future<void> _showDeleteDialog(SavedTemplate t) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('テンプレートを削除'),
+        content: Text('「${t.name}」を削除しますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _templates.removeWhere((e) => e.id == t.id));
+    widget.onDelete(t);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('保存済みテンプレート')),
+      body: _templates.isEmpty
+          ? const Center(
+              child: Text('テンプレートがありません',
+                  style: TextStyle(color: Color(0xFF6B8FA0))),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _templates.length,
+              itemBuilder: (_, i) {
+                final t = _templates[i];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    contentPadding:
+                        const EdgeInsets.fromLTRB(16, 10, 8, 10),
+                    title: Text(
+                      t.name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 15),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${t.isWetSuit ? 'ウェット' : 'ドライ'} · '
+                        '${t.isOvernight ? '宿泊' : '日帰り'} · '
+                        '${t.isBoat ? 'ボート' : 'ビーチ'}',
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFF6B8FA0)),
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF4EC8E8),
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10),
+                          ),
+                          onPressed: () => Navigator.pop(context, t),
+                          child: const Text('編集',
+                              style: TextStyle(fontSize: 13)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              size: 18, color: Color(0xFFFF5B5B)),
+                          tooltip: '削除',
+                          onPressed: () => _showDeleteDialog(t),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
+import '../widgets/sky_card.dart';
 
 // ─── 集計モデル ───────────────────────────────────────────────────────────────
 
@@ -239,27 +240,39 @@ class _CostScreenState extends State<CostScreen>
         title: const Text('コストレポート'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, size: 20),
             tooltip: '再読み込み',
             onPressed: _loadData,
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _entries.isEmpty
-              ? _buildEmpty()
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _buildSummary(primary),
-                    const SizedBox(height: 20),
-                    _buildTables(primary),
-                    const SizedBox(height: 20),
-                    _buildChart(primary),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SkyCard(
+            title: _isLoading ? 'ロード中...' : '累計 ${_yen(_totalCost)}',
+            subtitle: _isLoading ? '' : '総ダイブ $_totalDives 本 · 単価 ${_totalDives > 0 ? _yen(_avgCostPerDive) : "---"}',
+            emoji: '💰',
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _entries.isEmpty
+                    ? _buildEmpty()
+                    : ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          _buildSummary(primary),
+                          const SizedBox(height: 20),
+                          _buildTables(primary),
+                          const SizedBox(height: 20),
+                          _buildChart(primary),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -267,20 +280,20 @@ class _CostScreenState extends State<CostScreen>
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.bar_chart, size: 64, color: Colors.grey[300]),
+        const Icon(Icons.bar_chart, size: 48, color: Color(0xFFB0CDD5)),
         const SizedBox(height: 16),
-        Text(
+        const Text(
           '旅行データがありません',
           style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[600]),
+              color: Color(0xFF6B8FA0)),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           '「旅行準備」タブから旅行を追加して\nコストを入力してください',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey[500]),
+          style: TextStyle(color: Color(0xFF6B8FA0)),
         ),
       ],
     ),
@@ -295,18 +308,18 @@ class _CostScreenState extends State<CostScreen>
       child: Column(
         children: [
           _StatRow2(
-            left:  _StatTile(label: '累計コスト',   value: _yen(_totalCost),    color: primary),
-            right: _StatTile(label: 'ダイブ単価',   value: _totalDives > 0 ? _yen(_avgCostPerDive) : '---', color: Colors.deepOrange[700]!),
+            left:  _StatTile(label: '累計コスト',     value: _yen(_totalCost),    color: const Color(0xFF4EC8E8)),
+            right: _StatTile(label: 'ダイブ単価',     value: _totalDives > 0 ? _yen(_avgCostPerDive) : '---', color: const Color(0xFFFF9340)),
           ),
           const SizedBox(height: 8),
           _StatRow2(
-            left:  _StatTile(label: '累計ダイブ費', value: _yen(_totalDiveCost),      color: Colors.blue[700]!),
-            right: _StatTile(label: '累計宿泊費',   value: _yen(_totalAccommodation), color: Colors.orange[700]!),
+            left:  _StatTile(label: '累計ダイブ費',   value: _yen(_totalDiveCost),      color: const Color(0xFF4EC8E8)),
+            right: _StatTile(label: '累計宿泊費',     value: _yen(_totalAccommodation), color: const Color(0xFFFF9340)),
           ),
           const SizedBox(height: 8),
           _StatRow2(
-            left:  _StatTile(label: '累計交通費',   value: _yen(_totalTransport), color: Colors.purple[700]!),
-            right: _StatTile(label: '累計ダイブ本数', value: '$_totalDives 本',     color: Colors.teal[700]!),
+            left:  _StatTile(label: '累計交通費',     value: _yen(_totalTransport), color: const Color(0xFFA78BFA)),
+            right: _StatTile(label: '累計ダイブ本数', value: '$_totalDives 本',     color: const Color(0xFF7BBF00)),
           ),
         ],
       ),
@@ -401,13 +414,17 @@ class _CostScreenState extends State<CostScreen>
           const SizedBox(height: 10),
           Row(
             children: [
-              Container(width: 14, height: 14, color: primary.withValues(alpha: 0.65)),
+              Container(width: 14, height: 14,
+                  color: const Color(0xFF4EC8E8).withValues(alpha: 0.65)),
               const SizedBox(width: 4),
-              Text(_barOptions[_barMetric] ?? '',  style: const TextStyle(fontSize: 11)),
+              Text(_barOptions[_barMetric] ?? '',
+                  style: const TextStyle(fontSize: 11)),
               const SizedBox(width: 12),
-              Container(width: 18, height: 3, color: Colors.orange),
+              Container(width: 18, height: 3,
+                  color: const Color(0xFFFF9340)),
               const SizedBox(width: 4),
-              Text(_lineOptions[_lineMetric] ?? '', style: const TextStyle(fontSize: 11)),
+              Text(_lineOptions[_lineMetric] ?? '',
+                  style: const TextStyle(fontSize: 11)),
             ],
           ),
           const SizedBox(height: 8),
@@ -424,7 +441,7 @@ class _CostScreenState extends State<CostScreen>
                     months: months,
                     barValues: _barValues(months),
                     lineValues: _lineValues(months),
-                    barColor: primary.withValues(alpha: 0.65),
+                    barColor: const Color(0xFF4EC8E8).withValues(alpha: 0.7),
                     axisFormatter: _axisLabel,
                   ),
           ),
@@ -494,7 +511,7 @@ class _CombinedChart extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 4),
                       child: Text(
                         axisFormatter(v),
-                        style: const TextStyle(fontSize: 9, color: Color(0xFF005F8A)),
+                        style: const TextStyle(fontSize: 9, color: Color(0xFF6B8FA0)),
                         textAlign: TextAlign.right,
                       ),
                     );
@@ -559,13 +576,13 @@ class _CombinedChart extends StatelessWidget {
                         FlSpot(i.toDouble(), lineValues[i]),
                     ],
                     isCurved: true,
-                    color: Colors.orange,
+                    color: const Color(0xFFFF9340),
                     barWidth: 2.5,
                     dotData: FlDotData(
                       getDotPainter: (spot, pct, bar, idx) =>
                           FlDotCirclePainter(
                         radius: 3,
-                        color: Colors.orange,
+                        color: const Color(0xFFFF9340),
                         strokeColor: Colors.white,
                         strokeWidth: 1.5,
                       ),
@@ -591,7 +608,7 @@ class _CombinedChart extends StatelessWidget {
                           child: Text(
                             axisFormatter(v),
                             style: const TextStyle(
-                                fontSize: 9, color: Colors.orange),
+                                fontSize: 9, color: Color(0xFFFF9340)),
                           ),
                         );
                       },
@@ -741,7 +758,10 @@ class _Section extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.circle, size: 10, color: primary),
+            Container(
+              width: 8, height: 8,
+              decoration: BoxDecoration(color: primary, shape: BoxShape.circle),
+            ),
             const SizedBox(width: 6),
             Text(label,
                 style: TextStyle(
@@ -752,8 +772,8 @@ class _Section extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Card(
-          elevation: 3,
-          shadowColor: Colors.black.withValues(alpha: 0.15),
+          elevation: 2,
+          shadowColor: Colors.black12,
           child: Padding(padding: const EdgeInsets.all(16), child: child),
         ),
       ],

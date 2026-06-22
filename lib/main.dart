@@ -161,23 +161,47 @@ class DivingPrepApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0077B6),
-          brightness: Brightness.light,
+          seedColor: const Color(0xFF4EC8E8),
+          primary: const Color(0xFF4EC8E8),
+          onPrimary: Colors.white,
+          secondary: const Color(0xFFFF9340),
+          onSecondary: Colors.white,
+          surface: Colors.white,
         ),
-        scaffoldBackgroundColor: Colors.transparent,
+        scaffoldBackgroundColor: const Color(0xFFF9FEFF),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF48CAE4),
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF1A3A4A),
           elevation: 0,
           shadowColor: Colors.transparent,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: Color(0xFF1A3A4A),
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         cardTheme: CardThemeData(
           elevation: 2,
-          shadowColor: Colors.black.withValues(alpha: 0.12),
+          shadowColor: Colors.black12,
           color: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Colors.white,
+          selectedItemColor: Color(0xFF4EC8E8),
+          unselectedItemColor: Color(0xFFB0CDD5),
+          elevation: 0,
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFFF9340),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
           ),
         ),
       ),
@@ -198,69 +222,76 @@ class _MainNavigationState extends State<MainNavigation> {
   int _equipmentRefreshKey = 0;
   int _costRefreshKey = 0;
 
-  // EquipmentScreen・CostScreen はタブを開くたびに再構築して最新データを取得する
-  static const _fixedScreens = [
-    TravelScreen(),
-    TemplateScreen(),
-    MarineLifeScreen(),
-  ];
-
   void _onItemTapped(int index) {
-    if (index == 3) _equipmentRefreshKey++;
-    if (index == 4) _costRefreshKey++;
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 1) _equipmentRefreshKey++;
+    if (index == 3) _costRefreshKey++;
+    setState(() => _selectedIndex = index);
+  }
+
+  BottomNavigationBarItem _navItem(
+    IconData inactiveIcon,
+    IconData activeIcon,
+    String label,
+    int index,
+  ) {
+    return BottomNavigationBarItem(
+      label: label,
+      icon: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(inactiveIcon, size: 24, color: const Color(0xFFB0CDD5)),
+          const SizedBox(height: 3),
+        ],
+      ),
+      activeIcon: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(activeIcon, size: 24, color: const Color(0xFF4EC8E8)),
+          Container(
+            margin: const EdgeInsets.only(top: 3),
+            width: 4,
+            height: 4,
+            decoration: const BoxDecoration(
+              color: Color(0xFF4EC8E8),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          const TravelScreen(),
+          EquipmentScreen(key: ValueKey(_equipmentRefreshKey)),
+          const MarineLifeScreen(),
+          CostScreen(key: ValueKey(_costRefreshKey)),
+          const TemplateScreen(),
+        ],
+      ),
+      bottomNavigationBar: DecoratedBox(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFCAF0F8), Color(0xFFD8F3DC)],
-          ),
+          color: Colors.white,
+          border: Border(
+              top: BorderSide(color: Color(0xFFE8F8FC), width: 1.5)),
         ),
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: [
-            ..._fixedScreens,
-            EquipmentScreen(key: ValueKey(_equipmentRefreshKey)),
-            CostScreen(key: ValueKey(_costRefreshKey)),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          items: [
+            _navItem(Icons.flight_outlined, Icons.flight, '旅行準備', 0),
+            _navItem(Icons.pool_outlined, Icons.pool, '器材', 1),
+            _navItem(Icons.water_outlined, Icons.water, '生物クエスト', 2),
+            _navItem(Icons.bar_chart_outlined, Icons.bar_chart, 'コスト', 3),
+            _navItem(Icons.checklist_outlined, Icons.checklist, 'テンプレート', 4),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: const Color(0xFF0077B6),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_rounded),
-            label: '旅行準備',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.playlist_add),
-            label: '準備リスト',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.phishing),
-            label: '見たい生物',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.backpack),
-            label: 'マイ器材',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'コスト',
-          ),
-        ],
       ),
     );
   }
