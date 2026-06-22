@@ -14,6 +14,9 @@ workflows:
         script: |
           flutter --version
           flutter pub get
+      - name: Set up GoogleService-Info.plist
+        script: |
+          echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
       - name: Pod install
         script: |
           cd ios && pod install
