@@ -9,7 +9,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.sakura9625.divingprepapp
-        provisioning_profile_specifier: "Diving Prep App ios_app_store 1782111440"
     scripts:
       - name: Set up Flutter
         script: |
