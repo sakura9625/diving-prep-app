@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
+import '../services/user_service.dart';
 import '../widgets/sky_card.dart';
 
 // ─── 集計モデル ───────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ class _CostScreenState extends State<CostScreen>
     with SingleTickerProviderStateMixin {
   final _db = FirebaseFirestore.instance;
 
+  String? _userId;
   List<_TripEntry> _entries = [];
   bool _isLoading = true;
   int? _selectedYear;
@@ -78,6 +80,11 @@ class _CostScreenState extends State<CostScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initUser();
+  }
+
+  Future<void> _initUser() async {
+    _userId = await UserService.getUserId();
     _loadData();
   }
 
@@ -90,13 +97,14 @@ class _CostScreenState extends State<CostScreen>
   // ─── データ読み込み ───────────────────────────────
 
   Future<void> _loadData() async {
+    if (_userId == null) return;
     if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
       final results = await Future.wait([
-        _db.collection('trips').get(),
-        _db.collection('costs').get(),
+        _db.collection('users').doc(_userId).collection('trips').get(),
+        _db.collection('users').doc(_userId).collection('costs').get(),
       ]);
 
       final tripsSnapshot = results[0] as QuerySnapshot;
