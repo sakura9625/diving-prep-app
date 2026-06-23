@@ -445,7 +445,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
                 SkyCard(
                   title: '準備リストを設定',
                   subtitle: '$totalChk / $totalReq 項目チェック済み',
-                  emoji: '📋',
+                  emoji: '⚙️',
                 ),
                 const ColoredBox(
                   color: Color(0xFFE8F8FC),

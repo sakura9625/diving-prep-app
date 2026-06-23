@@ -519,7 +519,7 @@ class _TravelScreenState extends State<TravelScreen> {
             child: SkyCard(
               title: _trips.isEmpty ? '旅行を追加しましょう' : '${_trips.length}件の旅行予定',
               subtitle: _trips.isEmpty ? '日付をタップして旅行予定を追加' : '旅行の準備を進めましょう',
-              emoji: '✈️',
+              emoji: '⛵',
             ),
           ),
           const SliverToBoxAdapter(
