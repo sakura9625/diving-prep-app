@@ -1,11 +1,9 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
+import '../services/user_service.dart';
 import '../utils/checklist_data.dart';
 import '../widgets/sky_card.dart';
 
@@ -27,6 +25,7 @@ class TripDetailScreen extends StatefulWidget {
 class _TripDetailScreenState extends State<TripDetailScreen>
     with SingleTickerProviderStateMixin {
   final _db = FirebaseFirestore.instance;
+  String? _userId;
 
   // チェックリスト
   Map<String, List<TemplateItem>> _genreItems = {};
@@ -56,6 +55,11 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     _diveCountCtrl     = TextEditingController();
     _diveCostCtrl      = TextEditingController();
     _accommodationCtrl = TextEditingController();
+    _initUser();
+  }
+
+  Future<void> _initUser() async {
+    _userId = await UserService.getUserId();
     _loadData();
   }
 
@@ -139,10 +143,14 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     // ── バッグ割り当て ──
     List<String> customBags = [];
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString('bag_assignments');
-      if (raw != null) {
-        final bagMap = Map<String, String>.from(jsonDecode(raw) as Map);
+      final bagsDoc = await _db
+          .collection('users').doc(_userId)
+          .collection('settings').doc('bags')
+          .get();
+      if (bagsDoc.exists) {
+        final data = bagsDoc.data()!;
+        final bagMap = Map<String, String>.from(
+            (data['bagAssignments'] as Map? ?? {}));
         for (final items in genreItems.values) {
           for (final item in items) {
             if (bagMap.containsKey(item.id)) {
@@ -150,8 +158,9 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             }
           }
         }
+        customBags = List<String>.from(
+            (data['customBagNames'] as List? ?? []));
       }
-      customBags = prefs.getStringList('custom_bag_names') ?? [];
     } catch (_) {}
 
     // ── コスト ──
