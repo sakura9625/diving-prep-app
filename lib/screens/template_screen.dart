@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/template_item.dart';
+import '../services/user_service.dart';
 import '../utils/checklist_data.dart';
 import '../widgets/sky_card.dart';
 
@@ -19,6 +20,7 @@ class TemplateScreen extends StatefulWidget {
 class _TemplateScreenState extends State<TemplateScreen> {
   final _db = FirebaseFirestore.instance;
 
+  String? _userId;
   late Map<String, List<TemplateItem>> _genreItems;
   bool _isWetSuit   = true;
   bool _isOvernight = false;
@@ -35,17 +37,23 @@ class _TemplateScreenState extends State<TemplateScreen> {
   void initState() {
     super.initState();
     _genreItems = createInitialGenreItems();
-    _loadCustomItems();
-    _loadSavedTemplates();
+    _initUser();
     _loadMasterBagDefaults();
     _loadCustomBags();
+  }
+
+  Future<void> _initUser() async {
+    _userId = await UserService.getUserId();
+    _loadCustomItems();
+    _loadSavedTemplates();
   }
 
   // ─── カスタム項目の永続化 ───────────────────────────
 
   Future<void> _loadCustomItems() async {
+    if (_userId == null) return;
     try {
-      final doc = await _db.collection('templateItems').doc('custom').get();
+      final doc = await _db.collection('users').doc(_userId).collection('templateItems').doc('custom').get();
       if (!doc.exists) return;
       final items = (doc.data()!['items'] as List? ?? []);
       if (!mounted) return;
@@ -72,7 +80,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
         .where((e) => e.isCustom)
         .map((e) => {'id': e.id, 'name': e.name, 'genre': e.genre})
         .toList();
-    await _db.collection('templateItems').doc('custom').set({'items': items});
+    await _db.collection('users').doc(_userId).collection('templateItems').doc('custom').set({'items': items});
   }
 
   // ─── バッグ割り当て ─────────────────────────────────
@@ -155,8 +163,9 @@ class _TemplateScreenState extends State<TemplateScreen> {
   // ─── テンプレート永続化 ─────────────────────────────
 
   Future<void> _loadSavedTemplates() async {
+    if (_userId == null) return;
     try {
-      final snapshot = await _db.collection('templates').get();
+      final snapshot = await _db.collection('users').doc(_userId).collection('templates').get();
       if (!mounted) return;
       setState(() {
         _savedTemplates
@@ -168,17 +177,18 @@ class _TemplateScreenState extends State<TemplateScreen> {
   }
 
   Future<void> _persistSavedTemplates() async {
+    if (_userId == null) return;
     try {
-      final existing = await _db.collection('templates').get();
+      final existing = await _db.collection('users').doc(_userId).collection('templates').get();
       final existingIds = existing.docs.map((d) => d.id).toSet();
       final currentIds  = _savedTemplates.map((t) => t.id).toSet();
 
       final batch = _db.batch();
       for (final id in existingIds.difference(currentIds)) {
-        batch.delete(_db.collection('templates').doc(id));
+        batch.delete(_db.collection('users').doc(_userId).collection('templates').doc(id));
       }
       for (final t in _savedTemplates) {
-        batch.set(_db.collection('templates').doc(t.id), t.toJson());
+        batch.set(_db.collection('users').doc(_userId).collection('templates').doc(t.id), t.toJson());
       }
       await batch.commit();
     } catch (_) {}
