@@ -513,131 +513,139 @@ class _TravelScreenState extends State<TravelScreen> {
       appBar: AppBar(
         title: const Text('旅行準備'),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SkyCard(
-            title: _trips.isEmpty ? '旅行を追加しましょう' : '${_trips.length}件の旅行予定',
-            subtitle: _trips.isEmpty ? '日付をタップして旅行予定を追加' : '旅行の準備を進めましょう',
-            emoji: '✈️',
-          ),
-          const ColoredBox(
-            color: Color(0xFFE8F8FC),
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'ダイビング旅行の準備リストが作れます。\n日付をタップして旅行予定を追加しましょう。\nコスト管理や本数カウントもできます。',
-                style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0)),
-              ),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: SkyCard(
+              title: _trips.isEmpty ? '旅行を追加しましょう' : '${_trips.length}件の旅行予定',
+              subtitle: _trips.isEmpty ? '日付をタップして旅行予定を追加' : '旅行の準備を進めましょう',
+              emoji: '✈️',
             ),
           ),
-          ColoredBox(color: Colors.white, child: TableCalendar<Trip>(
-            locale: 'ja_JP',
-            firstDay: DateTime.utc(2020, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            calendarFormat: CalendarFormat.month,
-            availableCalendarFormats: const {CalendarFormat.month: '月'},
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            eventLoader: _tripsForDay,
-            onDaySelected: _onDaySelected,
-            onPageChanged: (focusedDay) =>
-                setState(() => _focusedDay = focusedDay),
-            calendarStyle: CalendarStyle(
-              markersMaxCount: 0,
-              selectedDecoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                shape: BoxShape.circle,
-              ),
-              todayDecoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              todayTextStyle: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            calendarBuilders: CalendarBuilders<Trip>(
-              defaultBuilder: (context, day, focusedDay) {
-                final hasTrips = _tripsForDay(day).isNotEmpty;
-                if (!hasTrips) return null;
-                return Container(
-                  margin: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: const Color(0xFF4EC8E8),
-                      width: 2,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${day.day}',
-                    style: const TextStyle(
-                      color: Color(0xFF4EC8E8),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                );
-              },
-            ),
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-            ),
-          )),
-
-          const Divider(height: 1),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => _showAddTripDialog(),
-                icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: const Text('旅行を追加'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF9340),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+          const SliverToBoxAdapter(
+            child: ColoredBox(
+              color: Color(0xFFE8F8FC),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'ダイビング旅行の準備リストが作れます。\n日付をタップして旅行予定を追加しましょう。\nコスト管理や本数カウントもできます。',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0)),
                 ),
               ),
             ),
           ),
-
-          Expanded(
-            child: filteredTrips.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.flight,
-                            size: 48,
-                            color: Color(0xFFB0CDD5)),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'この月の旅行はありません\n日付タップまたは＋ボタンで追加',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Color(0xFF6B8FA0), fontSize: 14),
-                        ),
-                      ],
+          SliverToBoxAdapter(
+            child: ColoredBox(color: Colors.white, child: TableCalendar<Trip>(
+              locale: 'ja_JP',
+              firstDay: DateTime.utc(2020, 1, 1),
+              lastDay: DateTime.utc(2030, 12, 31),
+              focusedDay: _focusedDay,
+              calendarFormat: CalendarFormat.month,
+              availableCalendarFormats: const {CalendarFormat.month: '月'},
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              eventLoader: _tripsForDay,
+              onDaySelected: _onDaySelected,
+              onPageChanged: (focusedDay) =>
+                  setState(() => _focusedDay = focusedDay),
+              calendarStyle: CalendarStyle(
+                markersMaxCount: 0,
+                selectedDecoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                todayDecoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                todayTextStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              calendarBuilders: CalendarBuilders<Trip>(
+                defaultBuilder: (context, day, focusedDay) {
+                  final hasTrips = _tripsForDay(day).isNotEmpty;
+                  if (!hasTrips) return null;
+                  return Container(
+                    margin: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: const Color(0xFF4EC8E8),
+                        width: 2,
+                      ),
+                      shape: BoxShape.circle,
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    itemCount: filteredTrips.length,
-                    itemBuilder: (_, i) => _TripCard(
-                      trip: filteredTrips[i],
-                      onTap: () => _openDetail(filteredTrips[i]),
-                      onDuplicate: () => _duplicateTrip(filteredTrips[i]),
-                      onDelete: () => _deleteTrip(filteredTrips[i]),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${day.day}',
+                      style: const TextStyle(
+                        color: Color(0xFF4EC8E8),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
+                  );
+                },
+              ),
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+              ),
+            )),
           ),
+          const SliverToBoxAdapter(
+            child: Divider(height: 1),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _showAddTripDialog(),
+                  icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                  label: const Text('旅行を追加'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF9340),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (filteredTrips.isEmpty)
+            const SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.flight, size: 48, color: Color(0xFFB0CDD5)),
+                    SizedBox(height: 12),
+                    Text(
+                      'この月の旅行はありません\n日付タップまたは＋ボタンで追加',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF6B8FA0), fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) => _TripCard(
+                    trip: filteredTrips[i],
+                    onTap: () => _openDetail(filteredTrips[i]),
+                    onDuplicate: () => _duplicateTrip(filteredTrips[i]),
+                    onDelete: () => _deleteTrip(filteredTrips[i]),
+                  ),
+                  childCount: filteredTrips.length,
+                ),
+              ),
+            ),
         ],
       ),
     );
