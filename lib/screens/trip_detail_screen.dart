@@ -264,6 +264,9 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDs) => AlertDialog(
           title: const Text('旅行を編集'),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1128,7 +1131,7 @@ class _ProgressBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 12,
+              minHeight: 24,
               backgroundColor: const Color(0xFFE8F8FC),
               valueColor: const AlwaysStoppedAnimation(Color(0xFFFFD233)),
             ),
