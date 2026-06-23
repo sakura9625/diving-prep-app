@@ -2,14 +2,18 @@ name: Upload to TestFlight
 
 on:
   workflow_dispatch:
+    inputs:
+      ipa_url:
+        description: 'Codemagic IPA download URL'
+        required: true
 
 jobs:
   upload:
     runs-on: macos-latest
     steps:
-      - name: Download IPA from Codemagic
+      - name: Download IPA
         run: |
-          curl -L "https://api.codemagic.io/artifacts/96707db4-01ab-48aa-824c-e18a451b6997/ca8be4de-3289-4442-818d-e6d20f9094e0/diving_prep_app.ipa" -o diving_prep_app.ipa
+          curl -L "${{ github.event.inputs.ipa_url }}" -o diving_prep_app.ipa
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v4
