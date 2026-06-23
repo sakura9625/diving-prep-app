@@ -246,9 +246,9 @@ class _TravelScreenState extends State<TravelScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // 日付
+                  // 旅行開始日
                   const Text(
-                    '日付',
+                    '旅行開始日',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),

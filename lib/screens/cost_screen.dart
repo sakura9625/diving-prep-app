@@ -68,6 +68,7 @@ class _CostScreenState extends State<CostScreen>
 
   List<_TripEntry> _entries = [];
   bool _isLoading = true;
+  int? _selectedYear;
   late TabController _tabController;
 
   String _barMetric  = 'bar_dives';
@@ -132,16 +133,26 @@ class _CostScreenState extends State<CostScreen>
 
   // ─── 集計 ────────────────────────────────────────
 
-  int get _totalDives         => _entries.fold(0, (s, e) => s + e.cost.diveCount);
-  int get _totalCost          => _entries.fold(0, (s, e) => s + e.cost.totalCost);
-  int get _totalDiveCost      => _entries.fold(0, (s, e) => s + e.cost.diveCost);
-  int get _totalAccommodation => _entries.fold(0, (s, e) => s + e.cost.accommodation);
-  int get _totalTransport     => _entries.fold(0, (s, e) => s + e.cost.transportTotal);
+  List<int> get _yearList {
+    final years = _entries.map((e) => e.trip.date.year).toSet().toList()..sort();
+    return years;
+  }
+
+  List<_TripEntry> get _filteredEntries =>
+      _selectedYear == null
+          ? _entries
+          : _entries.where((e) => e.trip.date.year == _selectedYear).toList();
+
+  int get _totalDives         => _filteredEntries.fold(0, (s, e) => s + e.cost.diveCount);
+  int get _totalCost          => _filteredEntries.fold(0, (s, e) => s + e.cost.totalCost);
+  int get _totalDiveCost      => _filteredEntries.fold(0, (s, e) => s + e.cost.diveCost);
+  int get _totalAccommodation => _filteredEntries.fold(0, (s, e) => s + e.cost.accommodation);
+  int get _totalTransport     => _filteredEntries.fold(0, (s, e) => s + e.cost.transportTotal);
   int get _avgCostPerDive     => _totalDives > 0 ? _totalCost ~/ _totalDives : 0;
 
   List<_MonthData> get _monthlyData {
     final map = <String, _MonthData>{};
-    for (final e in _entries) {
+    for (final e in _filteredEntries) {
       final key = '${e.trip.date.year}/${e.trip.date.month.toString().padLeft(2, '0')}';
       map.putIfAbsent(key, () =>
           _MonthData(year: e.trip.date.year, month: e.trip.date.month));
@@ -156,7 +167,7 @@ class _CostScreenState extends State<CostScreen>
 
   List<_GroupData> get _locationData {
     final map = <String, _GroupData>{};
-    for (final e in _entries) {
+    for (final e in _filteredEntries) {
       final key = (e.trip.location?.isNotEmpty == true)
           ? e.trip.location!
           : '（未設定）';
@@ -168,7 +179,7 @@ class _CostScreenState extends State<CostScreen>
 
   List<_GroupData> get _shopData {
     final map = <String, _GroupData>{};
-    for (final e in _entries) {
+    for (final e in _filteredEntries) {
       final key = (e.trip.shopName?.isNotEmpty == true)
           ? e.trip.shopName!
           : '（未設定）';
@@ -267,11 +278,13 @@ class _CostScreenState extends State<CostScreen>
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _entries.isEmpty
+                : _filteredEntries.isEmpty
                     ? _buildEmpty()
                     : ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
+                          _buildYearFilter(),
+                          const SizedBox(height: 12),
                           _buildSummary(primary),
                           const SizedBox(height: 20),
                           _buildTables(primary),
@@ -308,6 +321,30 @@ class _CostScreenState extends State<CostScreen>
       ],
     ),
   );
+
+  // ─── 年フィルター ────────────────────────────────
+
+  Widget _buildYearFilter() {
+    final years = _yearList;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _YearChip(
+            label: '全期間',
+            selected: _selectedYear == null,
+            onTap: () => setState(() => _selectedYear = null),
+          ),
+          for (final y in years)
+            _YearChip(
+              label: '$y年',
+              selected: _selectedYear == y,
+              onTap: () => setState(() => _selectedYear = y),
+            ),
+        ],
+      ),
+    );
+  }
 
   // ─── サマリーセクション ──────────────────────────
 
@@ -837,6 +874,37 @@ class _StatTile extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: color)),
         ],
+      ),
+    );
+  }
+}
+
+class _YearChip extends StatelessWidget {
+  const _YearChip({required this.label, required this.selected, required this.onTap});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF4EC8E8) : const Color(0xFFF0FAFE),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE8F8FC)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : const Color(0xFF4EC8E8),
+          ),
+        ),
       ),
     );
   }
