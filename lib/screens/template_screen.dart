@@ -90,18 +90,18 @@ class _TemplateScreenState extends State<TemplateScreen> {
           .get();
       if (!doc.exists) return;
       final data = doc.data()!;
-      final assignments = Map<String, String>.from(
-          (data['bagAssignments'] as Map? ?? {}));
       final defaults = Map<String, String>.from(
           (data['masterBagDefaults'] as Map? ?? {}));
       final customBags = List<String>.from(
           (data['customBagNames'] as List? ?? []));
       if (!mounted) return;
       setState(() {
-        _bagAssignments    = assignments;
         _masterBagDefaults = defaults;
         _customBags        = customBags;
-        _applyBagAssignments();
+        if (_loadedTemplateName == null) {
+          _bagAssignments = Map.from(_masterBagDefaults);
+          _applyBagAssignments();
+        }
       });
     } catch (_) {}
   }
@@ -114,7 +114,6 @@ class _TemplateScreenState extends State<TemplateScreen> {
           .collection('users').doc(_userId)
           .collection('settings').doc('bags')
           .set({
-        'bagAssignments':    _bagAssignments,
         'masterBagDefaults': _masterBagDefaults,
         'customBagNames':    _customBags,
       });
@@ -133,21 +132,10 @@ class _TemplateScreenState extends State<TemplateScreen> {
   }
 
   Future<void> _setBagForItem(TemplateItem item, String bagName) async {
-    if (_userId == null) return;
     setState(() {
       item.bagName = bagName;
       _bagAssignments[item.id] = bagName;
     });
-    try {
-      await _db
-          .collection('users').doc(_userId)
-          .collection('settings').doc('bags')
-          .set({
-        'bagAssignments':    _bagAssignments,
-        'masterBagDefaults': _masterBagDefaults,
-        'customBagNames':    _customBags,
-      });
-    } catch (_) {}
   }
 
   Future<void> _loadCustomBags() async {
@@ -162,7 +150,6 @@ class _TemplateScreenState extends State<TemplateScreen> {
           .collection('users').doc(_userId)
           .collection('settings').doc('bags')
           .set({
-        'bagAssignments':    _bagAssignments,
         'masterBagDefaults': _masterBagDefaults,
         'customBagNames':    _customBags,
       });
@@ -245,6 +232,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
       isBoat: _isBoat,
       checkStates: checkStates,
       customItems: customItems,
+      bagAssignments: Map.from(_bagAssignments),
     );
     setState(() {
       if (overwriteIndex != null) {
@@ -284,6 +272,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
         }
       }
 
+      _bagAssignments = Map.from(template.bagAssignments);
       _applyBagAssignments();
       _loadedTemplateName = template.name;
     });
@@ -807,7 +796,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (_bagAssignments.isNotEmpty) ...[
+                if (_loadedTemplateName == null && _bagAssignments.isNotEmpty) ...[
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(

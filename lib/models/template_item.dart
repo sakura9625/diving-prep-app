@@ -87,6 +87,8 @@ class SavedTemplate {
   final Map<String, bool> checkStates;
   // [{id, name, genre}]
   final List<Map<String, String>> customItems;
+  // item.id → bagName
+  final Map<String, String> bagAssignments;
 
   SavedTemplate({
     required this.id,
@@ -96,6 +98,7 @@ class SavedTemplate {
     this.isBoat = true,
     this.checkStates = const {},
     this.customItems = const [],
+    this.bagAssignments = const {},
   });
 
   Map<String, dynamic> toJson() => {
@@ -106,6 +109,7 @@ class SavedTemplate {
     'isBoat': isBoat,
     'checkStates': checkStates,
     'customItems': customItems,
+    'bagAssignments': bagAssignments,
   };
 
   factory SavedTemplate.fromJson(Map<String, dynamic> json) => SavedTemplate(
@@ -121,5 +125,7 @@ class SavedTemplate {
     customItems: (json['customItems'] as List? ?? [])
         .map((e) => Map<String, String>.from(e as Map))
         .toList(),
+    bagAssignments: Map<String, String>.from(
+        (json['bagAssignments'] as Map? ?? {})),
   );
 }
