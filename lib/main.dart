@@ -1,11 +1,8 @@
-import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'screens/travel_screen.dart';
 import 'screens/template_screen.dart';
@@ -17,128 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('ja_JP', null);
-  await _migrateFromSharedPrefs();
   runApp(const DivingPrepApp());
-}
-
-// ─── SharedPreferences → Firestore 一回限りの移行 ─────────────────────────────
-
-Future<void> _migrateFromSharedPrefs() async {
-  final db = FirebaseFirestore.instance;
-
-  // 移行済みチェック
-  try {
-    final migDoc = await db.collection('metadata').doc('migration').get();
-    if (migDoc.exists) return;
-  } catch (_) {
-    return; // Firestore 接続エラーの場合はスキップ
-  }
-
-  final prefs = await SharedPreferences.getInstance();
-  final batch = db.batch();
-
-  // ── 旅行 ──
-  final tripsRaw = prefs.getString('saved_trips');
-  if (tripsRaw != null) {
-    try {
-      final trips = jsonDecode(tripsRaw) as List;
-      for (final t in trips) {
-        final tripMap = t as Map<String, dynamic>;
-        final id = tripMap['id'] as String;
-        batch.set(db.collection('trips').doc(id), tripMap);
-
-        final costRaw = prefs.getString('trip_${id}_cost');
-        if (costRaw != null) {
-          try {
-            batch.set(db.collection('costs').doc(id),
-                jsonDecode(costRaw) as Map<String, dynamic>);
-          } catch (_) {}
-        }
-
-        final checksRaw = prefs.getString('trip_${id}_checks');
-        if (checksRaw != null) {
-          try {
-            batch.set(db.collection('checks').doc(id),
-                {'data': jsonDecode(checksRaw) as Map<String, dynamic>});
-          } catch (_) {}
-        }
-      }
-    } catch (_) {}
-  }
-
-  // ── テンプレート ──
-  final templatesRaw = prefs.getString('saved_templates');
-  if (templatesRaw != null) {
-    try {
-      final templates = jsonDecode(templatesRaw) as List;
-      for (final t in templates) {
-        final tmplMap = t as Map<String, dynamic>;
-        final id = tmplMap['id'] as String;
-        batch.set(db.collection('templates').doc(id), tmplMap);
-      }
-    } catch (_) {}
-  }
-
-  // ── 履歴 ──
-  final locsRaw = prefs.getString('saved_locations');
-  if (locsRaw != null) {
-    try {
-      batch.set(db.collection('history').doc('locations'),
-          {'items': jsonDecode(locsRaw) as List});
-    } catch (_) {}
-  }
-  final shopsRaw = prefs.getString('saved_shops');
-  if (shopsRaw != null) {
-    try {
-      batch.set(db.collection('history').doc('shops'),
-          {'items': jsonDecode(shopsRaw) as List});
-    } catch (_) {}
-  }
-
-  // ── 見たい生物 ──
-  final mlStateRaw = prefs.getString('marine_life_state');
-  if (mlStateRaw != null) {
-    try {
-      batch.set(db.collection('marineLife').doc('state'),
-          {'data': jsonDecode(mlStateRaw) as Map<String, dynamic>});
-    } catch (_) {}
-  }
-  final mlCustomRaw = prefs.getString('marine_life_custom');
-  if (mlCustomRaw != null) {
-    try {
-      batch.set(db.collection('marineLife').doc('custom'),
-          {'items': jsonDecode(mlCustomRaw) as List});
-    } catch (_) {}
-  }
-
-  // ── 器材 ──
-  final equipRaw = prefs.getString('equipment_list');
-  if (equipRaw != null) {
-    try {
-      final equipList = jsonDecode(equipRaw) as List;
-      for (final e in equipList) {
-        final equipMap = e as Map<String, dynamic>;
-        final id = equipMap['id'] as String;
-        batch.set(db.collection('equipment').doc(id), equipMap);
-      }
-    } catch (_) {}
-  }
-
-  // ── 準備リストカスタム項目 ──
-  final tiCustomRaw = prefs.getString('diving_prep_custom_items');
-  if (tiCustomRaw != null) {
-    try {
-      batch.set(db.collection('templateItems').doc('custom'),
-          {'items': jsonDecode(tiCustomRaw) as List});
-    } catch (_) {}
-  }
-
-  // 移行完了マーク
-  batch.set(db.collection('metadata').doc('migration'), {'done': true});
-
-  try {
-    await batch.commit();
-  } catch (_) {}
 }
 
 // ─── アプリ ───────────────────────────────────────────────────────────────────
