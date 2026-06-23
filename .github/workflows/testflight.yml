@@ -12,7 +12,7 @@ jobs:
           curl -L "https://api.codemagic.io/artifacts/96707db4-01ab-48aa-824c-e18a451b6997/ca8be4de-3289-4442-818d-e6d20f9094e0/diving_prep_app.ipa" -o diving_prep_app.ipa
 
       - name: Upload to TestFlight
-        uses: apple-actions/upload-testflight-build@v3
+        uses: apple-actions/upload-testflight-build@v4
         with:
           app-path: diving_prep_app.ipa
           issuer-id: dbb08011-93cf-4501-89b0-cd49b04be3fb
