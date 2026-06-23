@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
@@ -229,24 +230,23 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   BottomNavigationBarItem _navItem(
-    IconData inactiveIcon,
-    IconData activeIcon,
+    FaIconData inactiveIcon,
+    FaIconData activeIcon,
     String label,
-    int index,
   ) {
     return BottomNavigationBarItem(
       label: label,
       icon: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(inactiveIcon, size: 24, color: const Color(0xFFB0CDD5)),
+          FaIcon(inactiveIcon, size: 24, color: const Color(0xFFB0CDD5)),
           const SizedBox(height: 3),
         ],
       ),
       activeIcon: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(activeIcon, size: 24, color: const Color(0xFF4EC8E8)),
+          FaIcon(activeIcon, size: 24, color: const Color(0xFF4EC8E8)),
           Container(
             margin: const EdgeInsets.only(top: 3),
             width: 4,
@@ -285,11 +285,11 @@ class _MainNavigationState extends State<MainNavigation> {
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
           items: [
-            _navItem(Icons.flight_outlined, Icons.flight, '旅行準備', 0),
-            _navItem(Icons.build_outlined, Icons.build, '器材', 1),
-            _navItem(Icons.water_outlined, Icons.water, '生物クエスト', 2),
-            _navItem(Icons.bar_chart_outlined, Icons.bar_chart, 'コスト', 3),
-            _navItem(Icons.checklist_outlined, Icons.checklist, 'テンプレート', 4),
+            _navItem(FontAwesomeIcons.sailboat, FontAwesomeIcons.sailboat, '旅行準備'),
+            _navItem(FontAwesomeIcons.mask, FontAwesomeIcons.mask, '器材'),
+            _navItem(FontAwesomeIcons.fish, FontAwesomeIcons.fish, 'クエスト'),
+            _navItem(FontAwesomeIcons.chartSimple, FontAwesomeIcons.chartSimple, 'コスト'),
+            _navItem(FontAwesomeIcons.gear, FontAwesomeIcons.gear, 'テンプレート'),
           ],
         ),
       ),
