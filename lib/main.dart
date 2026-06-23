@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
@@ -230,8 +231,7 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   BottomNavigationBarItem _navItem(
-    IconData inactiveIcon,
-    IconData activeIcon,
+    String svgPath,
     String label,
   ) {
     return BottomNavigationBarItem(
@@ -239,14 +239,14 @@ class _MainNavigationState extends State<MainNavigation> {
       icon: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FaIcon(inactiveIcon, size: 24, color: const Color(0xFFB0CDD5)),
+          SvgPicture.asset(svgPath, width: 24, height: 24, colorFilter: const ColorFilter.mode(Color(0xFFB0CDD5), BlendMode.srcIn)),
           const SizedBox(height: 3),
         ],
       ),
       activeIcon: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FaIcon(activeIcon, size: 24, color: const Color(0xFF4EC8E8)),
+          SvgPicture.asset(svgPath, width: 24, height: 24, colorFilter: const ColorFilter.mode(Color(0xFF4EC8E8), BlendMode.srcIn)),
           Container(
             margin: const EdgeInsets.only(top: 3),
             width: 4,
@@ -285,11 +285,11 @@ class _MainNavigationState extends State<MainNavigation> {
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
           items: [
-            _navItem(FontAwesomeIcons.sailboat, FontAwesomeIcons.sailboat, '旅行準備'),
-            _navItem(FontAwesomeIcons.mask, FontAwesomeIcons.mask, '器材'),
-            _navItem(FontAwesomeIcons.fish, FontAwesomeIcons.fish, 'クエスト'),
-            _navItem(FontAwesomeIcons.chartSimple, FontAwesomeIcons.chartSimple, 'コスト'),
-            _navItem(FontAwesomeIcons.gear, FontAwesomeIcons.gear, 'テンプレート'),
+            _navItem('assets/icons/sailboat-solid-full.svg', '旅行準備'),
+            _navItem('assets/icons/mask-solid-full.svg', '器材'),
+            _navItem('assets/icons/fish-solid-full.svg', 'クエスト'),
+            _navItem('assets/icons/chart-simple-solid-full.svg', 'コスト'),
+            _navItem('assets/icons/gear-solid-full.svg', 'テンプレート'),
           ],
         ),
       ),
