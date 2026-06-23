@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
+import '../services/user_service.dart';
 import '../widgets/sky_card.dart';
 import 'trip_detail_screen.dart';
 
@@ -16,6 +17,7 @@ class TravelScreen extends StatefulWidget {
 class _TravelScreenState extends State<TravelScreen> {
   final _db = FirebaseFirestore.instance;
 
+  String? _userId;
   final List<Trip> _trips = [];
   List<SavedTemplate> _savedTemplates = [];
   List<String> _savedLocations = [];
@@ -26,6 +28,11 @@ class _TravelScreenState extends State<TravelScreen> {
   @override
   void initState() {
     super.initState();
+    _initUser();
+  }
+
+  Future<void> _initUser() async {
+    _userId = await UserService.getUserId();
     _loadTrips();
     _loadTemplates();
     _loadHistory();
@@ -34,8 +41,9 @@ class _TravelScreenState extends State<TravelScreen> {
   // ─── 旅行の永続化 ──────────────────────────────────
 
   Future<void> _loadTrips() async {
+    if (_userId == null) return;
     try {
-      final snapshot = await _db.collection('trips').get();
+      final snapshot = await _db.collection('users').doc(_userId).collection('trips').get();
       if (!mounted) return;
       setState(() {
         _trips
@@ -46,12 +54,13 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   Future<void> _saveTripToFirestore(Trip trip) async {
-    await _db.collection('trips').doc(trip.id).set(trip.toJson());
+    await _db.collection('users').doc(_userId).collection('trips').doc(trip.id).set(trip.toJson());
   }
 
   Future<void> _loadTemplates() async {
+    if (_userId == null) return;
     try {
-      final snapshot = await _db.collection('templates').get();
+      final snapshot = await _db.collection('users').doc(_userId).collection('templates').get();
       if (!mounted) return;
       setState(() {
         _savedTemplates = snapshot.docs
@@ -64,10 +73,11 @@ class _TravelScreenState extends State<TravelScreen> {
   // ─── 場所・ショップ履歴 ────────────────────────────
 
   Future<void> _loadHistory() async {
+    if (_userId == null) return;
     try {
       final results = await Future.wait([
-        _db.collection('history').doc('locations').get(),
-        _db.collection('history').doc('shops').get(),
+        _db.collection('users').doc(_userId).collection('history').doc('locations').get(),
+        _db.collection('users').doc(_userId).collection('history').doc('shops').get(),
       ]);
       if (!mounted) return;
       final locsDoc  = results[0];
@@ -99,11 +109,11 @@ class _TravelScreenState extends State<TravelScreen> {
 
     final futures = <Future>[];
     if (locChanged) {
-      futures.add(_db.collection('history').doc('locations')
+      futures.add(_db.collection('users').doc(_userId).collection('history').doc('locations')
           .set({'items': _savedLocations}));
     }
     if (shopChanged) {
-      futures.add(_db.collection('history').doc('shops')
+      futures.add(_db.collection('users').doc(_userId).collection('history').doc('shops')
           .set({'items': _savedShops}));
     }
     if (futures.isNotEmpty) await Future.wait(futures);
@@ -451,9 +461,9 @@ class _TravelScreenState extends State<TravelScreen> {
 
     // コスト情報をFirestoreから複製
     try {
-      final costDoc = await _db.collection('costs').doc(original.id).get();
+      final costDoc = await _db.collection('users').doc(_userId).collection('costs').doc(original.id).get();
       if (costDoc.exists && mounted) {
-        await _db.collection('costs').doc(newId).set(costDoc.data()!);
+        await _db.collection('users').doc(_userId).collection('costs').doc(newId).set(costDoc.data()!);
       }
     } catch (_) {}
 
@@ -489,9 +499,9 @@ class _TravelScreenState extends State<TravelScreen> {
     if (confirmed != true || !mounted) return;
 
     await Future.wait([
-      _db.collection('trips').doc(trip.id).delete(),
-      _db.collection('costs').doc(trip.id).delete(),
-      _db.collection('checks').doc(trip.id).delete(),
+      _db.collection('users').doc(_userId).collection('trips').doc(trip.id).delete(),
+      _db.collection('users').doc(_userId).collection('costs').doc(trip.id).delete(),
+      _db.collection('users').doc(_userId).collection('checks').doc(trip.id).delete(),
     ]);
 
     if (!mounted) return;
