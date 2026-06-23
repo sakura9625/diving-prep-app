@@ -230,8 +230,8 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   BottomNavigationBarItem _navItem(
-    FaIconData inactiveIcon,
-    FaIconData activeIcon,
+    IconData inactiveIcon,
+    IconData activeIcon,
     String label,
   ) {
     return BottomNavigationBarItem(
