@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/template_item.dart';
 import '../services/user_service.dart';
 import '../utils/checklist_data.dart';
@@ -38,14 +35,13 @@ class _TemplateScreenState extends State<TemplateScreen> {
     super.initState();
     _genreItems = createInitialGenreItems();
     _initUser();
-    _loadMasterBagDefaults();
-    _loadCustomBags();
   }
 
   Future<void> _initUser() async {
     _userId = await UserService.getUserId();
     _loadCustomItems();
     _loadSavedTemplates();
+    _loadMasterBagDefaults();
   }
 
   // ─── カスタム項目の永続化 ───────────────────────────
@@ -86,25 +82,42 @@ class _TemplateScreenState extends State<TemplateScreen> {
   // ─── バッグ割り当て ─────────────────────────────────
 
   Future<void> _loadMasterBagDefaults() async {
+    if (_userId == null) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString('master_bag_defaults');
-      if (raw == null) return;
-      final map = Map<String, String>.from(jsonDecode(raw) as Map);
+      final doc = await _db
+          .collection('users').doc(_userId)
+          .collection('settings').doc('bags')
+          .get();
+      if (!doc.exists) return;
+      final data = doc.data()!;
+      final assignments = Map<String, String>.from(
+          (data['bagAssignments'] as Map? ?? {}));
+      final defaults = Map<String, String>.from(
+          (data['masterBagDefaults'] as Map? ?? {}));
+      final customBags = List<String>.from(
+          (data['customBagNames'] as List? ?? []));
       if (!mounted) return;
       setState(() {
-        _masterBagDefaults = map;
-        _bagAssignments = Map.from(map);
+        _bagAssignments    = assignments;
+        _masterBagDefaults = defaults;
+        _customBags        = customBags;
         _applyBagAssignments();
       });
     } catch (_) {}
   }
 
   Future<void> _saveMasterBagDefaults() async {
+    if (_userId == null) return;
     setState(() => _masterBagDefaults = Map.from(_bagAssignments));
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('master_bag_defaults', jsonEncode(_bagAssignments));
+      await _db
+          .collection('users').doc(_userId)
+          .collection('settings').doc('bags')
+          .set({
+        'bagAssignments':    _bagAssignments,
+        'masterBagDefaults': _masterBagDefaults,
+        'customBagNames':    _customBags,
+      });
     } catch (_) {}
     _showSnackBar('カバンのデフォルト割り当てを保存しました');
   }
@@ -120,30 +133,39 @@ class _TemplateScreenState extends State<TemplateScreen> {
   }
 
   Future<void> _setBagForItem(TemplateItem item, String bagName) async {
+    if (_userId == null) return;
     setState(() {
       item.bagName = bagName;
       _bagAssignments[item.id] = bagName;
     });
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('bag_assignments', jsonEncode(_bagAssignments));
+      await _db
+          .collection('users').doc(_userId)
+          .collection('settings').doc('bags')
+          .set({
+        'bagAssignments':    _bagAssignments,
+        'masterBagDefaults': _masterBagDefaults,
+        'customBagNames':    _customBags,
+      });
     } catch (_) {}
   }
 
   Future<void> _loadCustomBags() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final bags = prefs.getStringList('custom_bag_names') ?? [];
-      if (!mounted) return;
-      setState(() => _customBags = bags);
-    } catch (_) {}
+    // カバンデータは_loadMasterBagDefaultsでまとめて読み込むため不要
   }
 
   Future<void> _addCustomBag(String name) async {
+    if (_userId == null) return;
     setState(() => _customBags.add(name));
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('custom_bag_names', _customBags);
+      await _db
+          .collection('users').doc(_userId)
+          .collection('settings').doc('bags')
+          .set({
+        'bagAssignments':    _bagAssignments,
+        'masterBagDefaults': _masterBagDefaults,
+        'customBagNames':    _customBags,
+      });
     } catch (_) {}
   }
 
