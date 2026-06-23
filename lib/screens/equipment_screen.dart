@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/equipment.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
+import '../services/user_service.dart';
 import '../widgets/sky_card.dart';
 
 // --- アラートレベル ---
@@ -68,6 +69,7 @@ class _EquipmentScreenState extends State<EquipmentScreen>
     with WidgetsBindingObserver {
   final _db = FirebaseFirestore.instance;
 
+  String? _userId;
   List<Equipment> _equipments = [];
   Map<String, int> _tripDives = {};
   bool _isLoading = true;
@@ -76,6 +78,11 @@ class _EquipmentScreenState extends State<EquipmentScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initUser();
+  }
+
+  Future<void> _initUser() async {
+    _userId = await UserService.getUserId();
     _loadData();
   }
 
@@ -95,13 +102,14 @@ class _EquipmentScreenState extends State<EquipmentScreen>
   // ─── 永続化 ──────────────────────────────────────
 
   Future<void> _loadData() async {
+    if (_userId == null) return;
     if (mounted) setState(() => _isLoading = true);
 
     try {
       final results = await Future.wait([
-        _db.collection('equipment').get(),
-        _db.collection('trips').get(),
-        _db.collection('costs').get(),
+        _db.collection('users').doc(_userId).collection('equipment').get(),
+        _db.collection('users').doc(_userId).collection('trips').get(),
+        _db.collection('users').doc(_userId).collection('costs').get(),
       ]);
 
       final equipSnapshot = results[0] as QuerySnapshot;
@@ -137,17 +145,18 @@ class _EquipmentScreenState extends State<EquipmentScreen>
   Future<void> _saveEquipments() async {
     final batch = _db.batch();
     for (final e in _equipments) {
-      batch.set(_db.collection('equipment').doc(e.id), e.toJson());
+      batch.set(_db.collection('users').doc(_userId).collection('equipment').doc(e.id), e.toJson());
     }
     await batch.commit();
   }
 
   Future<void> _reloadTripDives() async {
+    if (_userId == null) return;
     if (!mounted) return;
     try {
       final results = await Future.wait([
-        _db.collection('trips').get(),
-        _db.collection('costs').get(),
+        _db.collection('users').doc(_userId).collection('trips').get(),
+        _db.collection('users').doc(_userId).collection('costs').get(),
       ]);
       final trips = (results[0] as QuerySnapshot).docs
           .map((d) => Trip.fromJson(d.data() as Map<String, dynamic>))
