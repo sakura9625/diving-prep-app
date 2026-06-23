@@ -32,6 +32,8 @@ workflows:
     publishing:
       app_store_connect:
         api_key: Codemagic
+        key_id: 9434Y4VH6U
+        issuer_id: dbb08011-93cf-4501-89b0-cd49b04be3fb
         submit_to_testflight: true
         beta_groups:
           - Internal Testers
