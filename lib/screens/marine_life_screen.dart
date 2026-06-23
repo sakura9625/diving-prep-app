@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../services/user_service.dart';
 import '../widgets/sky_card.dart';
 
 // --- データモデル ---
@@ -163,6 +164,7 @@ class MarineLifeScreen extends StatefulWidget {
 class _MarineLifeScreenState extends State<MarineLifeScreen> {
   final _db = FirebaseFirestore.instance;
 
+  String? _userId;
   List<MarineLifeItem> _items = [];
   String _selectedCategory = 'すべて';
   bool _isLoading = true;
@@ -170,19 +172,25 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
   @override
   void initState() {
     super.initState();
+    _initUser();
+  }
+
+  Future<void> _initUser() async {
+    _userId = await UserService.getUserId();
     _loadData();
   }
 
   // ─── 永続化 ──────────────────────────────────────
 
   Future<void> _loadData() async {
+    if (_userId == null) return;
     Map<String, dynamic> stateMap = {};
     List<dynamic> customList = [];
 
     try {
       final results = await Future.wait([
-        _db.collection('marineLife').doc('state').get(),
-        _db.collection('marineLife').doc('custom').get(),
+        _db.collection('users').doc(_userId).collection('marineLife').doc('state').get(),
+        _db.collection('users').doc(_userId).collection('marineLife').doc('custom').get(),
       ]);
       final stateDoc  = results[0];
       final customDoc = results[1];
@@ -240,8 +248,8 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
         .toList();
 
     await Future.wait([
-      _db.collection('marineLife').doc('state').set({'data': stateMap}),
-      _db.collection('marineLife').doc('custom').set({'items': customList}),
+      _db.collection('users').doc(_userId).collection('marineLife').doc('state').set({'data': stateMap}),
+      _db.collection('users').doc(_userId).collection('marineLife').doc('custom').set({'items': customList}),
     ]);
   }
 
