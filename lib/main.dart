@@ -229,7 +229,7 @@ class _MainNavigationState extends State<MainNavigation> {
                   ),
                 ),
                 _navItem('assets/icons/fish-solid-full.svg', 'クエスト'),
-                _navItem('assets/icons/chart-simple-solid-full.svg', 'コスト'),
+                _navItem('assets/icons/chart-simple-solid-full.svg', 'レポート'),
                 _navItem('assets/icons/gear-solid-full.svg', 'テンプレ'),
               ],
             ),
