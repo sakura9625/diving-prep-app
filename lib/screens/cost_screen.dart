@@ -394,12 +394,12 @@ class _CostScreenState extends State<CostScreen>
       primary: primary,
       child: Column(
         children: [
-          // 総旅行数・総累計ダイブ本数（年フィルター対象外）
+          // 生涯旅行数・生涯累計ダイブ本数（年フィルター対象外）
           Container(
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF4EC8E8).withValues(alpha: 0.06),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
             ),
@@ -409,7 +409,7 @@ class _CostScreenState extends State<CostScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('総旅行数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                      Text('生涯旅行数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                       const SizedBox(height: 4),
                       Text('${_totalTrips}回', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
                     ],
@@ -426,7 +426,7 @@ class _CostScreenState extends State<CostScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('総累計ダイブ本数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                              Text('生涯累計ダイブ本数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                               const SizedBox(height: 4),
                               Text('$_grandTotalDives本', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
                               Text('アプリ登録: $_appDives本 + 過去: $_pastDives本', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
@@ -466,6 +466,55 @@ class _CostScreenState extends State<CostScreen>
                             if (result != null) _savePastDives(result);
                           },
                           child: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF6B8FA0)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4EC8E8).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _selectedYear != null ? '$_selectedYear年の旅行数' : '累計旅行数',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_filteredEntries.length}回',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8)),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 40, color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedYear != null ? '$_selectedYear年のダイブ本数' : '累計ダイブ本数',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$_totalDives本',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8)),
                         ),
                       ],
                     ),
