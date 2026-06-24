@@ -183,8 +183,8 @@ class _MainNavigationState extends State<MainNavigation> {
                           top: -2,
                           right: -4,
                           child: Container(
-                            width: 8,
-                            height: 8,
+                            width: 16,
+                            height: 16,
                             decoration: const BoxDecoration(
                               color: Color(0xFFFF5B5B),
                               shape: BoxShape.circle,
@@ -217,8 +217,8 @@ class _MainNavigationState extends State<MainNavigation> {
                           top: -2,
                           right: -4,
                           child: Container(
-                            width: 8,
-                            height: 8,
+                            width: 16,
+                            height: 16,
                             decoration: const BoxDecoration(
                               color: Color(0xFFFF5B5B),
                               shape: BoxShape.circle,
