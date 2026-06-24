@@ -33,6 +33,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   bool _isLoading   = true;
   bool _hasTemplate = false;
   String _bagFilter = 'すべて';
+  bool _showUncheckedOnly = false;
   List<String> _customBags = [];
 
   // コスト
@@ -626,27 +627,51 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                   child: Row(
-                    children: ['すべて', 'メッシュバッグ', 'バックパック', '旅行ケース', ..._customBags, '未設定'].map((f) {
-                      final sel = _bagFilter == f;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
+                    children: [
+                      ...['すべて', 'メッシュバッグ', 'バックパック', '旅行ケース', ..._customBags, '未設定'].map((f) {
+                        final sel = _bagFilter == f;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () => setState(() => _bagFilter = f),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: sel ? const Color(0xFF4EC8E8) : const Color(0xFFF0FAFE),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFFE8F8FC)),
+                              ),
+                              child: Text(f, style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.w600,
+                                color: sel ? Colors.white : const Color(0xFF4EC8E8),
+                              )),
+                            ),
+                          ),
+                        );
+                      }),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
                         child: GestureDetector(
-                          onTap: () => setState(() => _bagFilter = f),
+                          onTap: () => setState(() => _showUncheckedOnly = !_showUncheckedOnly),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: sel ? const Color(0xFF4EC8E8) : const Color(0xFFF0FAFE),
+                              color: _showUncheckedOnly ? const Color(0xFFFF9340) : const Color(0xFFF0FAFE),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(color: const Color(0xFFE8F8FC)),
                             ),
-                            child: Text(f, style: TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.w600,
-                              color: sel ? Colors.white : const Color(0xFF4EC8E8),
-                            )),
+                            child: Text(
+                              '未チェックのみ',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: _showUncheckedOnly ? Colors.white : const Color(0xFF4EC8E8),
+                              ),
+                            ),
                           ),
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ],
                   ),
                 ),
                 ...genreOrder
@@ -657,12 +682,24 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                   padding: const EdgeInsets.all(32),
                   child: Center(
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.checklist, size: 52, color: Colors.grey[300]),
                         const SizedBox(height: 12),
                         Text(
                           'テンプレートが選択されていません',
                           style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: _showEditDialog,
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),
+                          label: const Text('旅行情報を編集してテンプレートを選択'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF4EC8E8),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
                       ],
                     ),
@@ -758,7 +795,11 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             ? allItems.where((e) => e.bagName.isEmpty).toList()
             : allItems.where((e) => e.bagName == _bagFilter).toList();
 
-    if (displayItems.isEmpty) return const SizedBox.shrink();
+    final filteredItems = _showUncheckedOnly
+        ? displayItems.where((e) => !e.isChecked).toList()
+        : displayItems;
+
+    if (filteredItems.isEmpty) return const SizedBox.shrink();
 
     final activeList = allItems
         .where((e) => e.isNaturallyActive(_isWet, _isOvernight, _isBoat))
@@ -786,7 +827,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
           ),
         ],
       ),
-      children: displayItems.map((item) => _buildItemRow(item, color)).toList(),
+      children: filteredItems.map((item) => _buildItemRow(item, color)).toList(),
     );
   }
 
