@@ -188,34 +188,35 @@ class _HelpItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                width: 6, height: 6,
-                decoration: BoxDecoration(
-                  color: item.isNote
-                      ? const Color(0xFFFF9340)
-                      : const Color(0xFF4EC8E8),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.text,
-                  style: TextStyle(
-                    fontSize: 14,
+          if (item.text.isNotEmpty)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  width: 6, height: 6,
+                  decoration: BoxDecoration(
                     color: item.isNote
-                        ? const Color(0xFFC45A00)
-                        : const Color(0xFF1A3A4A),
-                    fontWeight: item.isNote ? FontWeight.w600 : FontWeight.normal,
+                        ? const Color(0xFFFF9340)
+                        : const Color(0xFF4EC8E8),
+                    shape: BoxShape.circle,
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.text,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: item.isNote
+                          ? const Color(0xFFC45A00)
+                          : const Color(0xFF1A3A4A),
+                      fontWeight: item.isNote ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           if (item.hasImage)
             Container(
               margin: EdgeInsets.fromLTRB(0, item.noTopMargin ? 0 : 10, 0, 0),
