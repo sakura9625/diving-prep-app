@@ -538,7 +538,7 @@ class _TravelScreenState extends State<TravelScreen> {
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
-                  'ダイビング旅行の準備リストが作れます。\n日付をタップして旅行予定を追加しましょう。\nコスト管理や本数カウントもできます。',
+                  'ダイビング旅行の準備リストが作れます。\n日付をタップして旅行予定を追加しましょう。\nコスト管理や本数カウントもできます。\nテンプレートタブで先にテンプレリストを作成してください。',
                   style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0)),
                 ),
               ),
@@ -557,6 +557,22 @@ class _TravelScreenState extends State<TravelScreen> {
               onDaySelected: _onDaySelected,
               onPageChanged: (focusedDay) =>
                   setState(() => _focusedDay = focusedDay),
+              onHeaderTapped: (focusedDay) async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _focusedDay,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2030),
+                  locale: const Locale('ja', 'JP'),
+                  initialDatePickerMode: DatePickerMode.year,
+                );
+                if (picked != null) {
+                  setState(() {
+                    _focusedDay = picked;
+                    _selectedDay = null;
+                  });
+                }
+              },
               calendarStyle: CalendarStyle(
                 markersMaxCount: 0,
                 selectedDecoration: BoxDecoration(
@@ -599,6 +615,10 @@ class _TravelScreenState extends State<TravelScreen> {
               headerStyle: const HeaderStyle(
                 formatButtonVisible: false,
                 titleCentered: true,
+                titleTextStyle: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             )),
           ),
