@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
 import '../services/user_service.dart';
+import '../widgets/help_bottom_sheet.dart';
 import '../widgets/sky_card.dart';
 import 'trip_detail_screen.dart';
 
@@ -522,6 +523,13 @@ class _TravelScreenState extends State<TravelScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('旅行準備'),
+        actions: [
+          IconButton(
+            icon: const Text('🔰', style: TextStyle(fontSize: 18)),
+            tooltip: '使い方',
+            onPressed: () => HelpBottomSheet.show(context, HelpTab.travel),
+          ),
+        ],
       ),
       body: CustomScrollView(
         slivers: [

@@ -5,6 +5,7 @@ import '../models/trip.dart';
 import '../models/trip_cost.dart';
 import '../services/equipment_alert_notifier.dart';
 import '../services/user_service.dart';
+import '../widgets/help_bottom_sheet.dart';
 import '../widgets/sky_card.dart';
 
 // --- アラートレベル ---
@@ -405,6 +406,13 @@ class _EquipmentScreenState extends State<EquipmentScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('マイ器材'),
+        actions: [
+          IconButton(
+            icon: const Text('🔰', style: TextStyle(fontSize: 18)),
+            tooltip: '使い方',
+            onPressed: () => HelpBottomSheet.show(context, HelpTab.equipment),
+          ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
+import '../widgets/help_bottom_sheet.dart';
 import '../widgets/sky_card.dart';
 
 // --- データモデル ---
@@ -482,6 +483,13 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('生物クエスト'),
+        actions: [
+          IconButton(
+            icon: const Text('🔰', style: TextStyle(fontSize: 18)),
+            tooltip: '使い方',
+            onPressed: () => HelpBottomSheet.show(context, HelpTab.quest),
+          ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

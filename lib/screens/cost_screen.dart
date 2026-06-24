@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
 import '../services/user_service.dart';
+import '../widgets/help_bottom_sheet.dart';
 import '../widgets/sky_card.dart';
 
 // ─── 集計モデル ───────────────────────────────────────────────────────────────
@@ -427,6 +428,11 @@ class _CostScreenState extends State<CostScreen>
       appBar: AppBar(
         title: const Text('レポート'),
         actions: [
+          IconButton(
+            icon: const Text('🔰', style: TextStyle(fontSize: 18)),
+            tooltip: '使い方',
+            onPressed: () => HelpBottomSheet.show(context, HelpTab.report),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, size: 20),
             tooltip: '再読み込み',

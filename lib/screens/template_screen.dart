@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/template_item.dart';
 import '../services/user_service.dart';
 import '../utils/checklist_data.dart';
+import '../widgets/help_bottom_sheet.dart';
 import '../widgets/sky_card.dart';
 
 // ─── 画面 ─────────────────────────────────────────────────────────────────────
@@ -457,6 +458,13 @@ class _TemplateScreenState extends State<TemplateScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('準備リストの設定'),
+        actions: [
+          IconButton(
+            icon: const Text('🔰', style: TextStyle(fontSize: 18)),
+            tooltip: '使い方',
+            onPressed: () => HelpBottomSheet.show(context, HelpTab.template),
+          ),
+        ],
       ),
       body: Column(
         children: [
