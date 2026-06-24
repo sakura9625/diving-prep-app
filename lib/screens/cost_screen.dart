@@ -72,9 +72,10 @@ class _CostScreenState extends State<CostScreen>
   bool _isLoading = true;
   int? _selectedYear;
   late TabController _tabController;
+  int _pastDives = 0;
 
   String _barMetric  = 'bar_dives';
-  String _lineMetric = 'line_monthly_cost_per_dive';
+  String _lineMetric = 'line_cumulative_cost_per_dive';
 
   @override
   void initState() {
@@ -86,6 +87,33 @@ class _CostScreenState extends State<CostScreen>
   Future<void> _initUser() async {
     _userId = await UserService.getUserId();
     _loadData();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    if (_userId == null) return;
+    try {
+      final doc = await _db
+          .collection('users').doc(_userId)
+          .collection('settings').doc('profile')
+          .get();
+      if (doc.exists) {
+        setState(() {
+          _pastDives = (doc.data()!['pastDives'] as int?) ?? 0;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _savePastDives(int value) async {
+    if (_userId == null) return;
+    setState(() => _pastDives = value);
+    try {
+      await _db
+          .collection('users').doc(_userId)
+          .collection('settings').doc('profile')
+          .set({'pastDives': value}, SetOptions(merge: true));
+    } catch (_) {}
   }
 
   @override
@@ -157,6 +185,10 @@ class _CostScreenState extends State<CostScreen>
   int get _totalAccommodation => _filteredEntries.fold(0, (s, e) => s + e.cost.accommodation);
   int get _totalTransport     => _filteredEntries.fold(0, (s, e) => s + e.cost.transportTotal);
   int get _avgCostPerDive     => _totalDives > 0 ? _totalCost ~/ _totalDives : 0;
+
+  int get _totalTrips      => _entries.length;
+  int get _appDives        => _entries.fold(0, (s, e) => s + e.cost.diveCount);
+  int get _grandTotalDives => _pastDives + _appDives;
 
   List<_MonthData> get _monthlyData {
     final map = <String, _MonthData>{};
@@ -256,7 +288,7 @@ class _CostScreenState extends State<CostScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('コストレポート'),
+        title: const Text('レポート'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, size: 20),
@@ -295,9 +327,9 @@ class _CostScreenState extends State<CostScreen>
                           const SizedBox(height: 12),
                           _buildSummary(primary),
                           const SizedBox(height: 20),
-                          _buildTables(primary),
-                          const SizedBox(height: 20),
                           _buildChart(primary),
+                          const SizedBox(height: 20),
+                          _buildTables(primary),
                           const SizedBox(height: 32),
                         ],
                       ),
@@ -333,7 +365,7 @@ class _CostScreenState extends State<CostScreen>
   // ─── 年フィルター ────────────────────────────────
 
   Widget _buildYearFilter() {
-    final years = _yearList;
+    final years = _yearList.reversed.toList();
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -362,6 +394,86 @@ class _CostScreenState extends State<CostScreen>
       primary: primary,
       child: Column(
         children: [
+          // 総旅行数・総累計ダイブ本数（年フィルター対象外）
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4EC8E8).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('総旅行数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                      const SizedBox(height: 4),
+                      Text('${_totalTrips}回', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 40, color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('総累計ダイブ本数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                              const SizedBox(height: 4),
+                              Text('$_grandTotalDives本', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
+                              Text('アプリ登録: $_appDives本 + 過去: $_pastDives本', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () async {
+                            final ctrl = TextEditingController(text: _pastDives > 0 ? _pastDives.toString() : '');
+                            final result = await showDialog<int>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('アプリ登録前のダイブ本数'),
+                                content: TextField(
+                                  controller: ctrl,
+                                  keyboardType: TextInputType.number,
+                                  autofocus: true,
+                                  decoration: const InputDecoration(
+                                    labelText: '本数',
+                                    suffixText: '本',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+                                  FilledButton(
+                                    onPressed: () {
+                                      final v = int.tryParse(ctrl.text) ?? 0;
+                                      Navigator.pop(ctx, v);
+                                    },
+                                    child: const Text('保存'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            ctrl.dispose();
+                            if (result != null) _savePastDives(result);
+                          },
+                          child: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF6B8FA0)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           _StatRow2(
             left:  _StatTile(label: '累計コスト',     value: _yen(_totalCost),    color: const Color(0xFF4EC8E8)),
             right: _StatTile(label: 'ダイブ単価',     value: _totalDives > 0 ? _yen(_avgCostPerDive) : '---', color: const Color(0xFFFF9340)),
