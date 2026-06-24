@@ -154,23 +154,24 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     // ── バッグ割り当て ──
     List<String> customBags = [];
     try {
+      // テンプレートのbagAssignmentsを使用
+      if (template != null && template.bagAssignments.isNotEmpty) {
+        for (final items in genreItems.values) {
+          for (final item in items) {
+            if (template.bagAssignments.containsKey(item.id)) {
+              item.bagName = template.bagAssignments[item.id]!;
+            }
+          }
+        }
+      }
+      // カスタムバッグ名はsettings/bagsから取得
       final bagsDoc = await _db
           .collection('users').doc(_userId)
           .collection('settings').doc('bags')
           .get();
       if (bagsDoc.exists) {
-        final data = bagsDoc.data()!;
-        final bagMap = Map<String, String>.from(
-            (data['bagAssignments'] as Map? ?? {}));
-        for (final items in genreItems.values) {
-          for (final item in items) {
-            if (bagMap.containsKey(item.id)) {
-              item.bagName = bagMap[item.id]!;
-            }
-          }
-        }
         customBags = List<String>.from(
-            (data['customBagNames'] as List? ?? []));
+            (bagsDoc.data()!['customBagNames'] as List? ?? []));
       }
     } catch (_) {}
 
