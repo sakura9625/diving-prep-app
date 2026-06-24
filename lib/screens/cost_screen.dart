@@ -187,9 +187,33 @@ class _CostScreenState extends State<CostScreen>
   int get _totalTransport     => _filteredEntries.fold(0, (s, e) => s + e.cost.transportTotal);
   int get _avgCostPerDive     => _totalDives > 0 ? _totalCost ~/ _totalDives : 0;
 
-  int get _totalTrips      => _entries.length;
-  int get _appDives        => _entries.fold(0, (s, e) => s + e.cost.diveCount);
-  int get _grandTotalDives => _pastDives + _appDives;
+  final _today = DateTime.now();
+
+  List<_TripEntry> get _pastEntries =>
+      _entries.where((e) => !e.trip.date.isAfter(DateTime(_today.year, _today.month, _today.day))).toList();
+
+  List<_TripEntry> get _futureEntries =>
+      _entries.where((e) => e.trip.date.isAfter(DateTime(_today.year, _today.month, _today.day))).toList();
+
+  List<_TripEntry> get _filteredPastEntries =>
+      _selectedYear == null
+          ? _pastEntries
+          : _pastEntries.where((e) => e.trip.date.year == _selectedYear).toList();
+
+  List<_TripEntry> get _filteredFutureEntries =>
+      _selectedYear == null
+          ? _futureEntries
+          : _futureEntries.where((e) => e.trip.date.year == _selectedYear).toList();
+
+  int get _lifetimeTrips => _pastEntries.length;
+
+  int get _totalPlannedDives => _futureEntries.fold(0, (s, e) => s + e.cost.diveCount);
+
+  int get _filteredPlannedDives => _filteredFutureEntries.fold(0, (s, e) => s + e.cost.diveCount);
+
+  int get _appPastDives => _pastEntries.fold(0, (s, e) => s + e.cost.diveCount);
+
+  int get _grandTotalDives => _pastDives + _appPastDives;
 
   List<_GroupData> get _topLocationsByDives {
     final map = <String, _GroupData>{};
@@ -539,7 +563,6 @@ class _CostScreenState extends State<CostScreen>
       primary: primary,
       child: Column(
         children: [
-          // 生涯旅行数・生涯累計ダイブ本数（年フィルター対象外）
           Container(
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.only(bottom: 12),
@@ -556,8 +579,22 @@ class _CostScreenState extends State<CostScreen>
                     children: [
                       Text('生涯旅行数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                       const SizedBox(height: 4),
-                      Text('${_totalTrips}回', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
+                      Text('${_lifetimeTrips}回', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
                     ],
+                  ),
+                ),
+                Container(width: 1, height: 40, color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('計画本数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                        const SizedBox(height: 4),
+                        Text('${_totalPlannedDives}本', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
+                      ],
+                    ),
                   ),
                 ),
                 Container(width: 1, height: 40, color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
@@ -574,7 +611,7 @@ class _CostScreenState extends State<CostScreen>
                               Text('生涯累計ダイブ本数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                               const SizedBox(height: 4),
                               Text('$_grandTotalDives本', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
-                              Text('アプリ登録: $_appDives本 + 過去: $_pastDives本', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                              Text('アプリ: $_appPastDives本 + 過去: $_pastDives本', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
                             ],
                           ),
                         ),
@@ -639,10 +676,30 @@ class _CostScreenState extends State<CostScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${_filteredEntries.length}回',
+                        '${_filteredPastEntries.length}回',
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8)),
                       ),
                     ],
+                  ),
+                ),
+                Container(width: 1, height: 40, color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedYear != null ? '$_selectedYear年の計画本数' : '計画本数',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_filteredPlannedDives}本',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 Container(width: 1, height: 40, color: const Color(0xFF4EC8E8).withValues(alpha: 0.2)),
@@ -658,7 +715,7 @@ class _CostScreenState extends State<CostScreen>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$_totalDives本',
+                          '${_filteredPastEntries.fold(0, (s, e) => s + e.cost.diveCount)}本',
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8)),
                         ),
                       ],
