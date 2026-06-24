@@ -204,14 +204,21 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     for (final items in _genreItems.values) {
       for (final i in items) { allChecks[i.id] = i.isChecked; }
     }
-    await _db.collection('checks').doc(widget.trip.id)
+    if (_userId == null) return;
+    await _db
+        .collection('users').doc(_userId)
+        .collection('checks').doc(widget.trip.id)
         .set({'data': allChecks});
   }
 
   // ─── コスト操作 ──────────────────────────────────
 
   Future<void> _saveCost() async {
-    await _db.collection('costs').doc(widget.trip.id).set(_cost.toJson());
+    if (_userId == null) return;
+    await _db
+        .collection('users').doc(_userId)
+        .collection('costs').doc(widget.trip.id)
+        .set(_cost.toJson());
   }
 
   void _addLeg(String direction) {
