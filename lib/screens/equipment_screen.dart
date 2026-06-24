@@ -205,6 +205,7 @@ class _EquipmentScreenState extends State<EquipmentScreen>
     var selectedType     = isEdit ? equipment.type : EquipmentType.bcd;
     DateTime? purchaseDate = isEdit ? equipment.purchaseDate : null;
     var maintenanceDate  = isEdit ? equipment.lastMaintenanceDate : DateTime.now();
+    var resetDivesManual = false;
     final nameCtrl       = TextEditingController(text: isEdit ? equipment.name : '');
     final divesCtrl      = TextEditingController(
       text: isEdit && equipment.divesManual > 0
@@ -310,6 +311,26 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                       onPicked: (d) => setDs(() => maintenanceDate = d),
                     ),
                   ),
+                  if (isEdit && maintenanceDate != equipment.lastMaintenanceDate && equipment.divesManual > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: resetDivesManual,
+                            onChanged: (v) => setDs(() => resetDivesManual = v ?? false),
+                            visualDensity: VisualDensity.compact,
+                            activeColor: const Color(0xFFFF5B5B),
+                          ),
+                          Expanded(
+                            child: Text(
+                              '手動本数（${equipment.divesManual}本）を0に戻しますか？',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFFFF5B5B)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 16),
 
                   _FieldLabel('前回メンテナンスからの使用本数'),
@@ -354,12 +375,11 @@ class _EquipmentScreenState extends State<EquipmentScreen>
 
     if (isEdit) {
       setState(() {
-        final maintenanceChanged = equipment.lastMaintenanceDate != maintenanceDate;
         equipment.name                = name;
         equipment.type                = selectedType;
         equipment.purchaseDate        = purchaseDate;
         equipment.lastMaintenanceDate = maintenanceDate;
-        equipment.divesManual         = maintenanceChanged ? 0 : divesManual;
+        equipment.divesManual         = resetDivesManual ? 0 : divesManual;
       });
     } else {
       setState(() {
