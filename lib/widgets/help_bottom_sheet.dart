@@ -67,7 +67,7 @@ class HelpBottomSheet extends StatelessWidget {
             Expanded(
               child: ListView(
                 controller: controller,
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
                   for (final item in content.items)
                     _HelpItem(item: item),
@@ -118,8 +118,8 @@ class HelpBottomSheet extends StatelessWidget {
           title: '器材の使い方',
           closing: '🔧 楽しく安全に潜りましょう！',
           items: [
-            _HelpItem2('マイ器材を登録して管理できます', hasImage: true),
-            _HelpItem2('最終メンテナンスから1年以上、または100本以上でアラートが出ます', hasImage: true),
+            _HelpItem2('マイ器材を登録して管理できます', hasImage: true, imagePath: 'assets/screenshots/help_equipment_list.png'),
+            _HelpItem2('最終メンテナンスから1年以上、または100本以上でアラートが出ます', hasImage: true, imagePath: 'assets/screenshots/help_equipment_alert.png'),
             _HelpItem2('旅行データと連動してダイブ本数を自動集計します', hasImage: false),
             _HelpItem2('ドライスーツはドライ旅行の本数のみカウントします', hasImage: false),
           ],
@@ -129,9 +129,9 @@ class HelpBottomSheet extends StatelessWidget {
           title: 'クエストの使い方',
           closing: '🐠 次は何を探しにいきますか？',
           items: [
-            _HelpItem2('ダイビングで出会った生物にチェックを入れられます', hasImage: true),
+            _HelpItem2('ダイビングで出会った生物にチェックを入れられます', hasImage: true, imagePath: 'assets/screenshots/help_quest_check.png'),
             _HelpItem2('出会った場所・時期を記録できます', hasImage: false),
-            _HelpItem2('自分だけのオリジナル生物を追加できます', hasImage: true),
+            _HelpItem2('自分だけのオリジナル生物を追加できます', hasImage: true, imagePath: 'assets/screenshots/help_quest_custom.png'),
           ],
         );
       case HelpTab.report:
@@ -139,9 +139,10 @@ class HelpBottomSheet extends StatelessWidget {
           title: 'レポートの使い方',
           closing: '💙 あなたのダイビングライフを楽しく振り返って、次の計画に役立ててください',
           items: [
-            _HelpItem2('これまでの旅行のコストや本数あたりの単価が確認できます', hasImage: true),
-            _HelpItem2('グラフで本数やコストの推移を確認できます', hasImage: true),
-            _HelpItem2('アクティビティカードでダイビング歴を振り返れます', hasImage: true),
+            _HelpItem2('これまでの旅行のコストや本数あたりの単価が確認できます', hasImage: true, imagePath: 'assets/screenshots/help_report_summary.png'),
+            _HelpItem2('グラフで本数やコストの推移を確認できます', hasImage: true, imagePath: 'assets/screenshots/help_report_graph.png'),
+            _HelpItem2('アクティビティカードでダイビング歴を振り返れます', hasImage: true, imagePath: 'assets/screenshots/help_report_activity1.png'),
+            _HelpItem2('', hasImage: true, imagePath: 'assets/screenshots/help_report_activity2.png'),
           ],
         );
       case HelpTab.template:
@@ -149,11 +150,11 @@ class HelpBottomSheet extends StatelessWidget {
           title: 'テンプレの使い方',
           closing: '✅ 楽しく潜るためには準備が大事！',
           items: [
-            _HelpItem2('旅行の準備の際に活用する準備リストのテンプレートをつくれます', hasImage: true),
+            _HelpItem2('旅行の準備の際に活用する準備リストのテンプレートをつくれます', hasImage: true, imagePath: 'assets/screenshots/help_template_list.png'),
             _HelpItem2('用意が必要なものにチェックを入れてください', hasImage: false),
-            _HelpItem2('スーツ種別・日帰り宿泊・ボートビーチに応じて推奨項目が変わり、準備を時短できます', hasImage: true),
+            _HelpItem2('スーツ種別・日帰り宿泊・ボートビーチに応じて推奨項目が変わり、準備を時短できます', hasImage: true, imagePath: 'assets/screenshots/help_template_switch.png'),
             _HelpItem2('アイテムをどのカバンに入れるか割り当てられます', hasImage: false),
-            _HelpItem2('作成したテンプレートを旅行に適用すると準備リストが自動生成されます', hasImage: true),
+            _HelpItem2('作成したテンプレートを旅行に適用すると準備リストが自動生成されます', hasImage: true, imagePath: 'assets/screenshots/help_template_apply.png'),
           ],
         );
     }
@@ -215,36 +216,40 @@ class _HelpItem extends StatelessWidget {
             ],
           ),
           if (item.hasImage)
-            item.imagePath != null
-              ? Container(
-                  margin: const EdgeInsets.only(top: 10, left: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
+            Container(
+              margin: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Image.asset(item.imagePath!, fit: BoxFit.cover),
-                )
-              : Container(
-                  margin: const EdgeInsets.only(top: 10, left: 16),
-                  height: 160,
-                  decoration: BoxDecoration(
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: item.imagePath != null
+                ? Image.asset(
+                    item.imagePath!,
+                    fit: BoxFit.fitWidth,
+                  )
+                : Container(
+                    height: 160,
                     color: const Color(0xFFF0FAFE),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.image_outlined, size: 32, color: Color(0xFFB0CDD5)),
-                        SizedBox(height: 8),
-                        Text('スクリーンショット準備中',
-                          style: TextStyle(fontSize: 12, color: Color(0xFFB0CDD5))),
-                      ],
+                    child: const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.image_outlined, size: 32, color: Color(0xFFB0CDD5)),
+                          SizedBox(height: 8),
+                          Text('スクリーンショット準備中',
+                            style: TextStyle(fontSize: 12, color: Color(0xFFB0CDD5))),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+            ),
         ],
       ),
     );
