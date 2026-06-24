@@ -257,6 +257,32 @@ class _CostScreenState extends State<CostScreen>
     return {'max': maxBlank, 'avg': totalBlank ~/ (sorted.length - 1)};
   }
 
+  Map<String, dynamic>? get _longestAbsentLocation {
+    if (_filteredEntries.length < 2) return null;
+    final sorted = [..._filteredEntries]..sort((a, b) => a.trip.date.compareTo(b.trip.date));
+    final locationVisits = <String, List<DateTime>>{};
+    for (final e in sorted) {
+      final loc = e.trip.location;
+      if (loc == null || loc.isEmpty) continue;
+      locationVisits.putIfAbsent(loc, () => []).add(e.trip.date);
+    }
+    String? maxLoc;
+    int maxDays = 0;
+    for (final entry in locationVisits.entries) {
+      if (entry.value.length < 2) continue;
+      final visits = entry.value..sort();
+      for (int i = 1; i < visits.length; i++) {
+        final days = visits[i].difference(visits[i-1]).inDays;
+        if (days > maxDays) {
+          maxDays = days;
+          maxLoc = entry.key;
+        }
+      }
+    }
+    if (maxLoc == null) return null;
+    return {'name': maxLoc, 'days': maxDays};
+  }
+
   List<String> get _newLocations {
     if (_selectedYear == null) return [];
     final beforeYear = _entries
@@ -440,9 +466,9 @@ class _CostScreenState extends State<CostScreen>
                           const SizedBox(height: 20),
                           _buildChart(primary),
                           const SizedBox(height: 20),
-                          _buildTables(primary),
-                          const SizedBox(height: 20),
                           _buildActivityCards(primary),
+                          const SizedBox(height: 20),
+                          _buildTables(primary),
                           const SizedBox(height: 32),
                         ],
                       ),
@@ -867,6 +893,40 @@ class _CostScreenState extends State<CostScreen>
           icon: Icons.hourglass_empty,
           iconBg: const Color(0xFFF1EEFF),
         )),
+      if (_longestAbsentLocation != null)
+        SizedBox(
+          width: double.infinity,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Container(
+                    width: 30, height: 30,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1EEFF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.hourglass_bottom_outlined, size: 16, color: Color(0xFF6D43D4)),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                const Text('一番久しぶりだった場所', style: TextStyle(fontSize: 10, color: Color(0xFF6B8FA0))),
+                const SizedBox(height: 2),
+                Text(_longestAbsentLocation!['name'] as String,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A3A4A))),
+                Text('${_longestAbsentLocation!['days']}日ぶり',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0))),
+              ],
+            ),
+          ),
+        ),
       if (_topLocationsByDives.isNotEmpty)
         SizedBox(
           width: double.infinity,
@@ -912,6 +972,68 @@ class _CostScreenState extends State<CostScreen>
         ),
     ];
 
+    Widget tripDetailCard({
+      required String label,
+      required _TripEntry entry,
+      required IconData icon,
+      required Color iconBg,
+      required String mainValue,
+    }) {
+      final t = entry.trip;
+      final d = t.date;
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 30, height: 30,
+                  decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
+                  child: Icon(icon, size: 16, color: primary),
+                ),
+                const Spacer(),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF6B8FA0))),
+            const SizedBox(height: 2),
+            Text(t.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A3A4A))),
+            const SizedBox(height: 4),
+            Text(mainValue, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4EC8E8))),
+            const SizedBox(height: 6),
+            if (t.location != null && t.location!.isNotEmpty)
+              Row(children: [
+                const Icon(Icons.place_outlined, size: 12, color: Color(0xFF6B8FA0)),
+                const SizedBox(width: 4),
+                Text(t.location!, style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0))),
+              ]),
+            if (t.shopName != null && t.shopName!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Row(children: [
+                const Icon(Icons.store_outlined, size: 12, color: Color(0xFF6B8FA0)),
+                const SizedBox(width: 4),
+                Text(t.shopName!, style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0))),
+              ]),
+            ],
+            const SizedBox(height: 2),
+            Row(children: [
+              const Icon(Icons.calendar_today_outlined, size: 12, color: Color(0xFF6B8FA0)),
+              const SizedBox(width: 4),
+              Text('${d.year}年${d.month}月${d.day}日',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0))),
+            ]),
+          ],
+        ),
+      );
+    }
+
     final allTimeStats = allTime;
     final topYear = allTimeStats['topYear'] as MapEntry<int, int>?;
     final topYearCost = allTimeStats['topYearCost'] as MapEntry<int, int>?;
@@ -956,23 +1078,23 @@ class _CostScreenState extends State<CostScreen>
       if (topTripByDives != null)
         SizedBox(
           width: double.infinity,
-          child: card(
+          child: tripDetailCard(
             label: '最も潜った旅行',
-            value: topTripByDives.trip.name,
-            sub: '${topTripByDives.cost.diveCount}本',
+            entry: topTripByDives,
             icon: Icons.scuba_diving,
             iconBg: const Color(0xFFE6F8FC),
+            mainValue: '${topTripByDives.cost.diveCount}本',
           ),
         ),
       if (topTripByCost != null)
         SizedBox(
           width: double.infinity,
-          child: card(
+          child: tripDetailCard(
             label: '最もお金を使った旅行',
-            value: topTripByCost.trip.name,
-            sub: _yen(topTripByCost.cost.totalCost),
+            entry: topTripByCost,
             icon: Icons.wallet_outlined,
             iconBg: const Color(0xFFFFF0E0),
+            mainValue: _yen(topTripByCost.cost.totalCost),
           ),
         ),
     ];
