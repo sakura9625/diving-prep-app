@@ -26,6 +26,7 @@ class TemplateItem {
   String bagName;
   final ItemCondition condition;
   bool isChecked;
+  bool isActive;
   final bool isCustom;
 
   TemplateItem({
@@ -34,7 +35,8 @@ class TemplateItem {
     required this.genre,
     this.bagName = '',
     this.condition = ItemCondition.always,
-    this.isChecked = true,
+    this.isChecked = false,
+    this.isActive = true,
     this.isCustom = false,
   });
 

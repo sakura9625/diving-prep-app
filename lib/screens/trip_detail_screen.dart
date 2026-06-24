@@ -109,6 +109,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         for (final items in genreItems.values) {
           for (final item in items) {
             item.isChecked = false;
+            item.isActive = false;
           }
         }
         for (final ci in template.customItems) {
@@ -120,31 +121,26 @@ class _TripDetailScreenState extends State<TripDetailScreen>
               genre: genre,
               isCustom: true,
               isChecked: false,
+              isActive: false,
             ));
           }
         }
 
-        // まずテンプレートのcheckStatesを適用
         for (final items in genreItems.values) {
           for (final item in items) {
             if (template.checkStates.containsKey(item.id)) {
-              item.isChecked = template.checkStates[item.id]!;
-            } else {
-              item.isChecked = false;
+              item.isActive = template.checkStates[item.id]!;
             }
           }
         }
 
         if (checksDoc.exists) {
-          final saved =
-              (checksDoc.data()! as Map<String, dynamic>)['data']
-                  as Map<String, dynamic>? ?? {};
+          final saved = (checksDoc.data()! as Map<String, dynamic>)['data']
+              as Map<String, dynamic>? ?? {};
           for (final items in genreItems.values) {
             for (final item in items) {
               if (saved.containsKey(item.id)) {
                 item.isChecked = saved[item.id] as bool;
-              } else {
-                item.isChecked = false;
               }
             }
           }
@@ -213,6 +209,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   // ─── チェックリスト操作 ──────────────────────────
 
   Future<void> _toggleItem(TemplateItem item) async {
+    if (!item.isActive) return;
     setState(() => item.isChecked = !item.isChecked);
     final allChecks = <String, bool>{};
     for (final items in _genreItems.values) {
@@ -556,7 +553,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         ? _genreItems.values.expand((l) => l).toList()
         : <TemplateItem>[];
     final activeItems = allItems
-        .where((e) => e.isChecked && e.isNaturallyActive(_isWet, _isOvernight, _isBoat))
+        .where((e) => e.isActive)
         .toList();
     final checkedCount = activeItems.where((e) => e.isChecked).length;
     final progress     = activeItems.isEmpty ? 0.0 : checkedCount / activeItems.length;
@@ -817,13 +814,13 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             : allItems.where((e) => e.bagName == _bagFilter).toList();
 
     final filteredItems = _showUncheckedOnly
-        ? displayItems.where((e) => !e.isChecked && e.isNaturallyActive(_isWet, _isOvernight, _isBoat)).toList()
+        ? displayItems.where((e) => e.isActive && !e.isChecked).toList()
         : displayItems;
 
     if (filteredItems.isEmpty) return const SizedBox.shrink();
 
     final activeList = allItems
-        .where((e) => e.isChecked && e.isNaturallyActive(_isWet, _isOvernight, _isBoat))
+        .where((e) => e.isActive)
         .toList();
     final checked    = activeList.where((e) => e.isChecked).length;
     final sectionDone =
@@ -853,7 +850,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   }
 
   Widget _buildItemRow(TemplateItem item, Color color) {
-    final isActive = item.isChecked || item.isNaturallyActive(_isWet, _isOvernight, _isBoat);
+    final isActive = item.isChecked || item.isActive;
     final textColor = isActive ? const Color(0xFF1A3A4A) : const Color(0xFFB0CDD5);
     final borderColor = isActive ? color : const Color(0xFFE8F8FC);
     final bgColor = item.isChecked ? color.withValues(alpha: 0.12) : Colors.white;
