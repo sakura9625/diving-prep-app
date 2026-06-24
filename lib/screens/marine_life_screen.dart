@@ -26,12 +26,16 @@ class MarineLifeItem {
 const List<String> _categories = [
   'すべて',
   'かわいい系',
+  'クマノミ',
   'ハゼ系',
-  '幼魚系',
+  '甲殻類',
   'ハナダイ系',
+  'ハダカカメガイ系',
   'ウミウシ系',
   '大物系',
-  '体験・現象系',
+  '幼魚',
+  '経験・マイアイテム',
+  '場所・現象系',
 ];
 
 // --- 初期データ ---
@@ -50,6 +54,18 @@ List<MarineLifeItem> _createInitialData() => [
   MarineLifeItem(name: 'クマドリカエルアンコウ', category: 'かわいい系'),
   MarineLifeItem(name: 'コケギンポ',             category: 'かわいい系'),
   MarineLifeItem(name: 'ハナイカ',               category: 'かわいい系'),
+  MarineLifeItem(name: 'クダゴンベ',             category: 'かわいい系'),
+  MarineLifeItem(name: 'モンツキカエルウオ',     category: 'かわいい系'),
+
+  // クマノミ
+  MarineLifeItem(name: 'クマノミ',               category: 'クマノミ'),
+  MarineLifeItem(name: 'カクレクマノミ',         category: 'クマノミ'),
+  MarineLifeItem(name: 'ハマクマノミ',           category: 'クマノミ'),
+  MarineLifeItem(name: 'セジロクマノミ',         category: 'クマノミ'),
+  MarineLifeItem(name: 'ハナビラクマノミ',       category: 'クマノミ'),
+  MarineLifeItem(name: 'トウアカクマノミ',       category: 'クマノミ'),
+  MarineLifeItem(name: 'クマノミの卵',           category: 'クマノミ'),
+  MarineLifeItem(name: 'クマノミのベイビー',     category: 'クマノミ'),
 
   // ハゼ系
   MarineLifeItem(name: 'アケボノハゼ',           category: 'ハゼ系'),
@@ -64,24 +80,39 @@ List<MarineLifeItem> _createInitialData() => [
   MarineLifeItem(name: 'ネジリンボウ',           category: 'ハゼ系'),
   MarineLifeItem(name: 'ヒレナガネジリンボウ',   category: 'ハゼ系'),
 
-  // 幼魚系
-  MarineLifeItem(name: 'サラサハタ',               category: '幼魚系'),
-  MarineLifeItem(name: 'マダラタルミ',             category: '幼魚系'),
-  MarineLifeItem(name: 'ハナヒゲウツボ',           category: '幼魚系'),
-  MarineLifeItem(name: 'ミナミハコフグ',           category: '幼魚系'),
-  MarineLifeItem(name: 'タテジマキンチャクダイ',   category: '幼魚系'),
-  MarineLifeItem(name: 'ホホスジタルミ',           category: '幼魚系'),
-  MarineLifeItem(name: 'ノコギリハギ',             category: '幼魚系'),
-  MarineLifeItem(name: 'アカククリ',               category: '幼魚系'),
+  // 甲殻類
+  MarineLifeItem(name: 'アカホシカクレエビ',         category: '甲殻類'),
+  MarineLifeItem(name: 'イソギンチャクモエビ',       category: '甲殻類'),
+  MarineLifeItem(name: 'キンチャクガニ',             category: '甲殻類'),
+  MarineLifeItem(name: 'キクチカニダマシ',           category: '甲殻類'),
+  MarineLifeItem(name: 'ピンクスクワッドロブスター', category: '甲殻類'),
+  MarineLifeItem(name: 'アカボシカニダマシ',         category: '甲殻類'),
+  MarineLifeItem(name: 'オオアカホシサンゴガニ',     category: '甲殻類'),
+  MarineLifeItem(name: 'ウミウシカクレエビ',         category: '甲殻類'),
+  MarineLifeItem(name: 'コシオリエビ',               category: '甲殻類'),
+  MarineLifeItem(name: 'オルトマンワラエビ',         category: '甲殻類'),
+  MarineLifeItem(name: 'モンハナシャコ',             category: '甲殻類'),
 
   // ハナダイ系
-  MarineLifeItem(name: 'スジハナダイ',     category: 'ハナダイ系'),
-  MarineLifeItem(name: 'アカオビハナダイ', category: 'ハナダイ系'),
-  MarineLifeItem(name: 'カシワハナダイ',   category: 'ハナダイ系'),
-  MarineLifeItem(name: 'ケラマハナダイ',   category: 'ハナダイ系'),
-  MarineLifeItem(name: 'アサヒハナゴイ',   category: 'ハナダイ系'),
-  MarineLifeItem(name: 'マダラハナダイ',   category: 'ハナダイ系'),
-  MarineLifeItem(name: 'ハナゴンベ',       category: 'ハナダイ系'),
+  MarineLifeItem(name: 'キンギョハナダイ',     category: 'ハナダイ系'),
+  MarineLifeItem(name: 'アカネハナゴイ',       category: 'ハナダイ系'),
+  MarineLifeItem(name: 'ハナゴイ',             category: 'ハナダイ系'),
+  MarineLifeItem(name: 'フタイロハナゴイ',     category: 'ハナダイ系'),
+  MarineLifeItem(name: 'ハナゴンベ',           category: 'ハナダイ系'),
+  MarineLifeItem(name: 'アカボシハナゴイ',     category: 'ハナダイ系'),
+  MarineLifeItem(name: 'スミレナガハナダイ',   category: 'ハナダイ系'),
+  MarineLifeItem(name: 'ケラマハナダイ',       category: 'ハナダイ系'),
+  MarineLifeItem(name: 'アサヒハナゴイ',       category: 'ハナダイ系'),
+  MarineLifeItem(name: 'アカオビハナダイ',     category: 'ハナダイ系'),
+  MarineLifeItem(name: 'サクラダイ',           category: 'ハナダイ系'),
+  MarineLifeItem(name: 'カシワハナダイ',       category: 'ハナダイ系'),
+  MarineLifeItem(name: 'スジハナダイ',         category: 'ハナダイ系'),
+  MarineLifeItem(name: 'ミナミハナダイ',       category: 'ハナダイ系'),
+  MarineLifeItem(name: 'フチドリハナダイ',     category: 'ハナダイ系'),
+  MarineLifeItem(name: 'コウリンハナダイ',     category: 'ハナダイ系'),
+  MarineLifeItem(name: 'ニラミハナダイ',       category: 'ハナダイ系'),
+  MarineLifeItem(name: 'マダラハナダイ',       category: 'ハナダイ系'),
+  MarineLifeItem(name: 'キシマハナダイ',       category: 'ハナダイ系'),
 
   // ウミウシ系
   MarineLifeItem(name: 'ミカドウミウシ',             category: 'ウミウシ系'),
@@ -91,65 +122,110 @@ List<MarineLifeItem> _createInitialData() => [
   MarineLifeItem(name: 'アオウミウシ',               category: 'ウミウシ系'),
 
   // 大物系
-  MarineLifeItem(name: 'マンタ',         category: '大物系'),
-  MarineLifeItem(name: 'ジンベエザメ',   category: '大物系'),
-  MarineLifeItem(name: 'ウミガメ',       category: '大物系'),
-  MarineLifeItem(name: 'ナポレオン',     category: '大物系'),
-  MarineLifeItem(name: 'ギンガメアジ',   category: '大物系'),
-  MarineLifeItem(name: 'バラクーダ',     category: '大物系'),
-  MarineLifeItem(name: 'イルカ',         category: '大物系'),
-  MarineLifeItem(name: 'トド',           category: '大物系'),
-  MarineLifeItem(name: 'マダラトビエイ', category: '大物系'),
+  MarineLifeItem(name: 'マンタ',               category: '大物系'),
+  MarineLifeItem(name: 'ジンベエザメ',         category: '大物系'),
+  MarineLifeItem(name: 'ウミガメ',             category: '大物系'),
+  MarineLifeItem(name: 'ナポレオン',           category: '大物系'),
+  MarineLifeItem(name: 'ギンガメアジ',         category: '大物系'),
+  MarineLifeItem(name: 'バラクーダ',           category: '大物系'),
+  MarineLifeItem(name: 'イルカ',               category: '大物系'),
+  MarineLifeItem(name: 'トド',                 category: '大物系'),
+  MarineLifeItem(name: 'マダラトビエイ',       category: '大物系'),
+  MarineLifeItem(name: 'ハンマーヘッドシャーク', category: '大物系'),
 
-  // 体験・現象系
-  MarineLifeItem(name: '夜光虫',                 category: '体験・現象系'),
-  MarineLifeItem(name: 'イワシ玉',               category: '体験・現象系'),
-  MarineLifeItem(name: 'クリーニングステーション', category: '体験・現象系'),
-  MarineLifeItem(name: '奄美ミステリーサークル', category: '体験・現象系'),
-  MarineLifeItem(name: 'ナイトダイビング',       category: '体験・現象系'),
-  MarineLifeItem(name: 'レイクダイビング',       category: '体験・現象系'),
-  MarineLifeItem(name: '沈没船',               category: '体験・現象系'),
+  // 幼魚
+  MarineLifeItem(name: 'サラサハタ',               category: '幼魚'),
+  MarineLifeItem(name: 'マダラタルミ',             category: '幼魚'),
+  MarineLifeItem(name: 'ハナヒゲウツボ',           category: '幼魚'),
+  MarineLifeItem(name: 'ミナミハコフグ',           category: '幼魚'),
+  MarineLifeItem(name: 'タテジマキンチャクダイ',   category: '幼魚'),
+  MarineLifeItem(name: 'ホホスジタルミ',           category: '幼魚'),
+  MarineLifeItem(name: 'ノコギリハギ',             category: '幼魚'),
+  MarineLifeItem(name: 'アカククリ',               category: '幼魚'),
+  MarineLifeItem(name: 'ナンヨウハギ（ドリー）',   category: '幼魚'),
+
+  // 経験・マイアイテム
+  MarineLifeItem(name: 'オープンウォーターを取得',                   category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'アドバンスを取得',                           category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'ボートダイビングを経験',                     category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'ビーチダイビングを経験',                     category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'ディープダイビングを経験',                   category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'ドリフトダイビングを経験',                   category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My 3点セット（マスク・フィン・シュノーケル）', category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My ダイコン',                               category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My ウェットスーツ',                         category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My ドライスーツ',                           category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My BCD',                                   category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My レギュレーター',                         category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My オクトパスホルダー',                     category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My 水中カメラ',                             category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My ストロボ',                               category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My ワイドレンズ',                           category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My 水中ライト',                             category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My 指示棒',                                 category: '経験・マイアイテム'),
+  MarineLifeItem(name: 'My ナイフ',                                 category: '経験・マイアイテム'),
+
+  // 場所・現象系
+  MarineLifeItem(name: '夜光虫',                   category: '場所・現象系'),
+  MarineLifeItem(name: 'イワシ玉',                 category: '場所・現象系'),
+  MarineLifeItem(name: 'クリーニングステーション', category: '場所・現象系'),
+  MarineLifeItem(name: '奄美ミステリーサークル',   category: '場所・現象系'),
+  MarineLifeItem(name: 'ナイトダイビング',         category: '場所・現象系'),
+  MarineLifeItem(name: 'レイクダイビング',         category: '場所・現象系'),
+  MarineLifeItem(name: '沈没船',                   category: '場所・現象系'),
 ];
 
 // --- カテゴリ別カラー（ドット・ボーダー） ---
 Color _categoryColor(String category) {
   switch (category) {
-    case 'かわいい系':   return const Color(0xFFFF8FAB);
-    case 'ハゼ系':       return const Color(0xFF4EC8E8);
-    case '幼魚系':       return const Color(0xFF7BBF00);
-    case 'ハナダイ系':   return const Color(0xFFD63A84);
-    case 'ウミウシ系':   return const Color(0xFFA78BFA);
-    case '大物系':       return const Color(0xFFFF9340);
-    case '体験・現象系': return const Color(0xFFF5C400);
-    default:             return const Color(0xFF4EC8E8);
+    case 'かわいい系':      return const Color(0xFFFF8FAB);
+    case 'クマノミ':        return const Color(0xFFFF6B35);
+    case 'ハゼ系':          return const Color(0xFF4EC8E8);
+    case '甲殻類':          return const Color(0xFF7BBF00);
+    case 'ハナダイ系':      return const Color(0xFFFF8FAB);
+    case 'ハダカカメガイ系': return const Color(0xFFA78BFA);
+    case 'ウミウシ系':      return const Color(0xFFA78BFA);
+    case '大物系':          return const Color(0xFFFF9340);
+    case '幼魚':            return const Color(0xFFFFD233);
+    case '経験・マイアイテム': return const Color(0xFF4EC8E8);
+    case '場所・現象系':    return const Color(0xFFF5C400);
+    default:                return const Color(0xFF4EC8E8);
   }
 }
 
 // --- カテゴリ別チップ背景色 ---
 Color _categoryBgColor(String category) {
   switch (category) {
-    case 'かわいい系':   return const Color(0xFFFFF0F4);
-    case 'ハゼ系':       return const Color(0xFFE6F8FC);
-    case '幼魚系':       return const Color(0xFFEEFACC);
-    case 'ハナダイ系':   return const Color(0xFFFFE8F3);
-    case 'ウミウシ系':   return const Color(0xFFF1EEFF);
-    case '大物系':       return const Color(0xFFFFF0E0);
-    case '体験・現象系': return const Color(0xFFFFF6CC);
-    default:             return const Color(0xFFE6F8FC);
+    case 'かわいい系':      return const Color(0xFFFFF0F4);
+    case 'クマノミ':        return const Color(0xFFFFF0E8);
+    case 'ハゼ系':          return const Color(0xFFE6F8FC);
+    case '甲殻類':          return const Color(0xFFEEFACC);
+    case 'ハナダイ系':      return const Color(0xFFFFF0F4);
+    case 'ハダカカメガイ系': return const Color(0xFFF1EEFF);
+    case 'ウミウシ系':      return const Color(0xFFF1EEFF);
+    case '大物系':          return const Color(0xFFFFF0E0);
+    case '幼魚':            return const Color(0xFFFFF6CC);
+    case '経験・マイアイテム': return const Color(0xFFE6F8FC);
+    case '場所・現象系':    return const Color(0xFFFFF6CC);
+    default:                return const Color(0xFFE6F8FC);
   }
 }
 
 // --- カテゴリ別チップ文字色 ---
 Color _categoryTextColor(String category) {
   switch (category) {
-    case 'かわいい系':   return const Color(0xFFC42B5A);
-    case 'ハゼ系':       return const Color(0xFF1A7A94);
-    case '幼魚系':       return const Color(0xFF5A8A00);
-    case 'ハナダイ系':   return const Color(0xFFD63A84);
-    case 'ウミウシ系':   return const Color(0xFF6D43D4);
-    case '大物系':       return const Color(0xFFC45A00);
-    case '体験・現象系': return const Color(0xFF9A7200);
-    default:             return const Color(0xFF1A7A94);
+    case 'かわいい系':      return const Color(0xFFC42B5A);
+    case 'クマノミ':        return const Color(0xFFC45A00);
+    case 'ハゼ系':          return const Color(0xFF1A7A94);
+    case '甲殻類':          return const Color(0xFF5A8A00);
+    case 'ハナダイ系':      return const Color(0xFFC42B5A);
+    case 'ハダカカメガイ系': return const Color(0xFF6D43D4);
+    case 'ウミウシ系':      return const Color(0xFF6D43D4);
+    case '大物系':          return const Color(0xFFC45A00);
+    case '幼魚':            return const Color(0xFF9A7200);
+    case '経験・マイアイテム': return const Color(0xFF1A7A94);
+    case '場所・現象系':    return const Color(0xFF9A7200);
+    default:                return const Color(0xFF1A7A94);
   }
 }
 
