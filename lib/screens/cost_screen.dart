@@ -190,6 +190,117 @@ class _CostScreenState extends State<CostScreen>
   int get _appDives        => _entries.fold(0, (s, e) => s + e.cost.diveCount);
   int get _grandTotalDives => _pastDives + _appDives;
 
+  List<_GroupData> get _topLocationsByDives {
+    final map = <String, _GroupData>{};
+    for (final e in _filteredEntries) {
+      final key = e.trip.location?.isNotEmpty == true ? e.trip.location! : null;
+      if (key == null) continue;
+      map.putIfAbsent(key, () => _GroupData(name: key)).add(e.cost);
+    }
+    final list = map.values.toList()..sort((a, b) => b.diveCount.compareTo(a.diveCount));
+    return list.take(3).toList();
+  }
+
+  List<MapEntry<String, int>> get _topShopsByTrips {
+    final map = <String, int>{};
+    for (final e in _filteredEntries) {
+      final key = e.trip.shopName?.isNotEmpty == true ? e.trip.shopName! : null;
+      if (key == null) continue;
+      map[key] = (map[key] ?? 0) + 1;
+    }
+    final list = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return list.take(3).toList();
+  }
+
+  _GroupData? get _topLocationByDives => _locationData.isNotEmpty ? _locationData.first : null;
+
+  MapEntry<String, int>? get _homePoint {
+    final map = <String, int>{};
+    for (final e in _filteredEntries) {
+      final key = e.trip.location?.isNotEmpty == true ? e.trip.location! : null;
+      if (key == null) continue;
+      map[key] = (map[key] ?? 0) + 1;
+    }
+    if (map.isEmpty) return null;
+    return map.entries.reduce((a, b) => a.value >= b.value ? a : b);
+  }
+
+  _GroupData? get _mostExpensiveLocation => _locationData.isNotEmpty ? _locationData.first : null;
+
+  _GroupData? get _bestCostpaShop {
+    final list = _shopData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
+      ..sort((a, b) => a.costPerDive.compareTo(b.costPerDive));
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  _GroupData? get _cheapestLocation {
+    final list = _locationData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
+      ..sort((a, b) => a.costPerDive.compareTo(b.costPerDive));
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  _GroupData? get _mostExpensivePerDiveLocation {
+    final list = _locationData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
+      ..sort((a, b) => b.costPerDive.compareTo(a.costPerDive));
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  Map<String, int> get _blankStats {
+    final sorted = [..._filteredEntries]..sort((a, b) => a.trip.date.compareTo(b.trip.date));
+    if (sorted.length < 2) return {'max': 0, 'avg': 0};
+    int maxBlank = 0, totalBlank = 0;
+    for (int i = 1; i < sorted.length; i++) {
+      final days = sorted[i].trip.date.difference(sorted[i-1].trip.date).inDays;
+      if (days > maxBlank) maxBlank = days;
+      totalBlank += days;
+    }
+    return {'max': maxBlank, 'avg': totalBlank ~/ (sorted.length - 1)};
+  }
+
+  List<String> get _newLocations {
+    if (_selectedYear == null) return [];
+    final beforeYear = _entries
+        .where((e) => e.trip.date.year < _selectedYear! && e.trip.location?.isNotEmpty == true)
+        .map((e) => e.trip.location!)
+        .toSet();
+    final thisYear = _filteredEntries
+        .where((e) => e.trip.location?.isNotEmpty == true)
+        .map((e) => e.trip.location!)
+        .toSet();
+    return thisYear.where((l) => !beforeYear.contains(l)).take(3).toList();
+  }
+
+  Map<String, dynamic> get _allTimeStats {
+    final byYear = <int, int>{};
+    final byYearCost = <int, int>{};
+    final byMonth = <int, int>{};
+    for (final e in _entries) {
+      final y = e.trip.date.year;
+      final m = e.trip.date.month;
+      byYear[y] = (byYear[y] ?? 0) + e.cost.diveCount;
+      byYearCost[y] = (byYearCost[y] ?? 0) + e.cost.totalCost;
+      byMonth[m] = (byMonth[m] ?? 0) + e.cost.diveCount;
+    }
+    final topYear = byYear.isEmpty ? null : byYear.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final topYearCost = byYearCost.isEmpty ? null : byYearCost.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final topMonth = byMonth.isEmpty ? null : byMonth.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final topTripByDives = _entries.isEmpty ? null : _entries.reduce((a, b) => a.cost.diveCount >= b.cost.diveCount ? a : b);
+    final topTripByCost = _entries.isEmpty ? null : _entries.reduce((a, b) => a.cost.totalCost >= b.cost.totalCost ? a : b);
+    final byYearTrips = <int, int>{};
+    for (final e in _entries) {
+      byYearTrips[e.trip.date.year] = (byYearTrips[e.trip.date.year] ?? 0) + 1;
+    }
+    final topYearTrips = byYearTrips.isEmpty ? null : byYearTrips.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    return {
+      'topYear': topYear,
+      'topYearCost': topYearCost,
+      'topMonth': topMonth,
+      'topTripByDives': topTripByDives,
+      'topTripByCost': topTripByCost,
+      'topYearTrips': topYearTrips,
+    };
+  }
+
   List<_MonthData> get _monthlyData {
     final map = <String, _MonthData>{};
     for (final e in _filteredEntries) {
@@ -330,6 +441,8 @@ class _CostScreenState extends State<CostScreen>
                           _buildChart(primary),
                           const SizedBox(height: 20),
                           _buildTables(primary),
+                          const SizedBox(height: 20),
+                          _buildActivityCards(primary),
                           const SizedBox(height: 32),
                         ],
                       ),
@@ -578,6 +691,315 @@ class _CostScreenState extends State<CostScreen>
           ),
         ],
       ),
+    );
+  }
+
+  // ─── アクティビティカード ────────────────────────
+
+  Widget _buildActivityCards(Color primary) {
+    final blank = _blankStats;
+    final allTime = _allTimeStats;
+    final monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+    Widget card({
+      required String label,
+      required String value,
+      String? sub,
+      required IconData icon,
+      required Color iconBg,
+      String? badge,
+    }) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 30, height: 30,
+                  decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
+                  child: Icon(icon, size: 16, color: primary),
+                ),
+                const Spacer(),
+                if (badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F8FC),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(badge, style: const TextStyle(fontSize: 10, color: Color(0xFF1A7A94))),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF6B8FA0))),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A3A4A))),
+            if (sub != null)
+              Text(sub, style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0))),
+          ],
+        ),
+      );
+    }
+
+    Widget barCard({
+      required String label,
+      required List<MapEntry<String, int>> ranks,
+    }) {
+      if (ranks.isEmpty) return const SizedBox.shrink();
+      final maxVal = ranks.first.value;
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF6B8FA0))),
+            const SizedBox(height: 8),
+            ...ranks.asMap().entries.map((e) {
+              final ratio = maxVal > 0 ? e.value.value / maxVal : 0.0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Row(children: [
+                  SizedBox(
+                    width: 14,
+                    child: Text('${e.key + 1}',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF4EC8E8))),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: ratio.toDouble(),
+                        minHeight: 6,
+                        backgroundColor: const Color(0xFFE6F8FC),
+                        valueColor: const AlwaysStoppedAnimation(Color(0xFF4EC8E8)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 80,
+                    child: Text(e.value.key,
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF1A3A4A)),
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right),
+                  ),
+                ]),
+              );
+            }),
+          ],
+        ),
+      );
+    }
+
+    final cardWidth = (MediaQuery.of(context).size.width - 32 - 8) / 2;
+
+    final filteredCards = <Widget>[
+      if (_topLocationByDives != null)
+        SizedBox(width: cardWidth, child: card(
+          label: '最も潜った海（本数）',
+          value: _topLocationByDives!.name,
+          sub: '${_topLocationByDives!.diveCount}本',
+          icon: Icons.waves,
+          iconBg: const Color(0xFFE6F8FC),
+          badge: '1位',
+        )),
+      if (_homePoint != null)
+        SizedBox(width: cardWidth, child: card(
+          label: 'ホームポイント（旅行数）',
+          value: _homePoint!.key,
+          sub: '${_homePoint!.value}回',
+          icon: Icons.home_outlined,
+          iconBg: const Color(0xFFFFF6CC),
+          badge: '常連',
+        )),
+      if (_mostExpensiveLocation != null)
+        SizedBox(width: cardWidth, child: card(
+          label: '最もお金を使った海',
+          value: _mostExpensiveLocation!.name,
+          sub: _yen(_mostExpensiveLocation!.totalCost),
+          icon: Icons.attach_money,
+          iconBg: const Color(0xFFFFF0E0),
+        )),
+      if (_bestCostpaShop != null)
+        SizedBox(width: cardWidth, child: card(
+          label: 'ベストコスパショップ',
+          value: _bestCostpaShop!.name,
+          sub: '${_yen(_bestCostpaShop!.costPerDive)} / 本',
+          icon: Icons.emoji_events_outlined,
+          iconBg: const Color(0xFFEEFACC),
+          badge: '最安値',
+        )),
+      if (_cheapestLocation != null)
+        SizedBox(width: cardWidth, child: card(
+          label: '最安単価の場所',
+          value: _cheapestLocation!.name,
+          sub: '${_yen(_cheapestLocation!.costPerDive)} / 本',
+          icon: Icons.arrow_downward,
+          iconBg: const Color(0xFFEEFACC),
+        )),
+      if (_mostExpensivePerDiveLocation != null)
+        SizedBox(width: cardWidth, child: card(
+          label: '最高単価の場所',
+          value: _mostExpensivePerDiveLocation!.name,
+          sub: '${_yen(_mostExpensivePerDiveLocation!.costPerDive)} / 本',
+          icon: Icons.arrow_upward,
+          iconBg: const Color(0xFFFFF0F4),
+        )),
+      if (blank['max']! > 0)
+        SizedBox(width: cardWidth, child: card(
+          label: '最長ブランク',
+          value: '${blank['max']}日',
+          sub: '平均 ${blank['avg']}日',
+          icon: Icons.hourglass_empty,
+          iconBg: const Color(0xFFF1EEFF),
+        )),
+      if (_topLocationsByDives.isNotEmpty)
+        SizedBox(
+          width: double.infinity,
+          child: barCard(
+            label: 'よくいく場所 TOP3（本数）',
+            ranks: _topLocationsByDives.map((e) => MapEntry(e.name, e.diveCount)).toList(),
+          ),
+        ),
+      if (_topShopsByTrips.isNotEmpty)
+        SizedBox(
+          width: double.infinity,
+          child: barCard(
+            label: 'よく使うショップ TOP3（旅行数）',
+            ranks: _topShopsByTrips,
+          ),
+        ),
+      if (_newLocations.isNotEmpty)
+        SizedBox(
+          width: double.infinity,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('新しく潜った海', style: TextStyle(fontSize: 10, color: Color(0xFF6B8FA0))),
+                const SizedBox(height: 8),
+                ..._newLocations.map((l) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(children: [
+                    const Icon(Icons.star_outline, size: 14, color: Color(0xFF4EC8E8)),
+                    const SizedBox(width: 6),
+                    Text(l, style: const TextStyle(fontSize: 13, color: Color(0xFF1A3A4A))),
+                  ]),
+                )),
+              ],
+            ),
+          ),
+        ),
+    ];
+
+    final allTimeStats = allTime;
+    final topYear = allTimeStats['topYear'] as MapEntry<int, int>?;
+    final topYearCost = allTimeStats['topYearCost'] as MapEntry<int, int>?;
+    final topMonth = allTimeStats['topMonth'] as MapEntry<int, int>?;
+    final topYearTrips = allTimeStats['topYearTrips'] as MapEntry<int, int>?;
+    final topTripByDives = allTimeStats['topTripByDives'] as _TripEntry?;
+    final topTripByCost = allTimeStats['topTripByCost'] as _TripEntry?;
+
+    final allTimeCards = <Widget>[
+      if (topMonth != null)
+        SizedBox(width: cardWidth, child: card(
+          label: '最も潜った月',
+          value: monthNames[topMonth.key - 1],
+          sub: '${topMonth.value}本',
+          icon: Icons.calendar_today,
+          iconBg: const Color(0xFFE6F8FC),
+        )),
+      if (topYear != null)
+        SizedBox(width: cardWidth, child: card(
+          label: '最も潜った年',
+          value: '${topYear.key}年',
+          sub: '${topYear.value}本',
+          icon: Icons.calendar_today,
+          iconBg: const Color(0xFFE6F8FC),
+        )),
+      if (topYearTrips != null)
+        SizedBox(width: cardWidth, child: card(
+          label: '最高旅行年',
+          value: '${topYearTrips.key}年',
+          sub: '${topYearTrips.value}回',
+          icon: Icons.flight,
+          iconBg: const Color(0xFFFFF6CC),
+        )),
+      if (topYearCost != null)
+        SizedBox(width: cardWidth, child: card(
+          label: '最多費用年',
+          value: '${topYearCost.key}年',
+          sub: _yen(topYearCost.value),
+          icon: Icons.attach_money,
+          iconBg: const Color(0xFFFFF0E0),
+        )),
+      if (topTripByDives != null)
+        SizedBox(
+          width: double.infinity,
+          child: card(
+            label: '最も潜った旅行',
+            value: topTripByDives.trip.name,
+            sub: '${topTripByDives.cost.diveCount}本',
+            icon: Icons.scuba_diving,
+            iconBg: const Color(0xFFE6F8FC),
+          ),
+        ),
+      if (topTripByCost != null)
+        SizedBox(
+          width: double.infinity,
+          child: card(
+            label: '最もお金を使った旅行',
+            value: topTripByCost.trip.name,
+            sub: _yen(topTripByCost.cost.totalCost),
+            icon: Icons.wallet_outlined,
+            iconBg: const Color(0xFFFFF0E0),
+          ),
+        ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Container(width: 8, height: 8,
+            decoration: const BoxDecoration(color: Color(0xFF4EC8E8), shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          const Text('アクティビティ',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A3A4A))),
+        ]),
+        const SizedBox(height: 8),
+        if (filteredCards.isNotEmpty) ...[
+          Wrap(spacing: 8, runSpacing: 8, children: filteredCards),
+          const SizedBox(height: 16),
+        ],
+        if (allTimeCards.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text('全期間', style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0), fontWeight: FontWeight.w600)),
+          ),
+          Wrap(spacing: 8, runSpacing: 8, children: allTimeCards),
+        ],
+      ],
     );
   }
 
