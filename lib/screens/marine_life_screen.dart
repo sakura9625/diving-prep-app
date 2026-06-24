@@ -27,15 +27,14 @@ const List<String> _categories = [
   'すべて',
   'かわいい系',
   'クマノミ',
-  'ハゼ系',
-  '甲殻類',
-  'ハナダイ系',
-  'ハダカカメガイ系',
-  'ウミウシ系',
   '大物系',
   '幼魚',
-  '経験・マイアイテム',
+  'ハゼ系',
+  'ハナダイ系',
+  '甲殻類',
+  'ウミウシ系',
   '場所・現象系',
+  '経験・マイアイテム',
 ];
 
 // --- 初期データ ---
@@ -79,6 +78,11 @@ List<MarineLifeItem> _createInitialData() => [
   MarineLifeItem(name: 'ヤシャハゼ',             category: 'ハゼ系'),
   MarineLifeItem(name: 'ネジリンボウ',           category: 'ハゼ系'),
   MarineLifeItem(name: 'ヒレナガネジリンボウ',   category: 'ハゼ系'),
+  MarineLifeItem(name: 'オキナワベニハゼ',       category: 'ハゼ系'),
+  MarineLifeItem(name: 'ハタタテハゼ',           category: 'ハゼ系'),
+  MarineLifeItem(name: 'キツネメネジリンボウ',   category: 'ハゼ系'),
+  MarineLifeItem(name: 'ハタタテシノビハゼ',     category: 'ハゼ系'),
+  MarineLifeItem(name: 'アオギハゼ',             category: 'ハゼ系'),
 
   // 甲殻類
   MarineLifeItem(name: 'アカホシカクレエビ',         category: '甲殻類'),
