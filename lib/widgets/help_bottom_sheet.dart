@@ -104,11 +104,11 @@ class HelpBottomSheet extends StatelessWidget {
           title: '旅行準備の使い方',
           closing: '🤿 次の旅行の準備をしましょう！',
           items: [
-            _HelpItem2('カレンダーで旅行日を管理できます', hasImage: true),
+            _HelpItem2('カレンダーで旅行日を管理できます', hasImage: true, imagePath: 'assets/screenshots/help_travel_calendar.png'),
             _HelpItem2('日付をタップすると旅行を追加できます', hasImage: false),
             _HelpItem2('旅行ごとに場所・ショップ・スーツ種別・宿泊有無を登録できます', hasImage: false),
-            _HelpItem2('テンプレートを選ぶと準備リストが自動生成されます', hasImage: true),
-            _HelpItem2('旅行をタップすると準備チェックリストとコスト入力画面に進めます', hasImage: true),
+            _HelpItem2('テンプレートを選ぶと準備リストが自動生成されます', hasImage: true, imagePath: 'assets/screenshots/help_travel_add_dialog.png'),
+            _HelpItem2('旅行をタップすると準備チェックリストとコスト入力画面に進めます', hasImage: true, imagePath: 'assets/screenshots/help_travel_cost.png'),
             _HelpItem2('旅行詳細ではダイブ本数・費用を記録でき、レポートでアクティビティ履歴が確認できます', hasImage: false),
             _HelpItem2('テンプレートを使うには、先にテンプレタブで自分用の準備リストをカスタムして保存してください', hasImage: false, isNote: true),
           ],
@@ -171,7 +171,8 @@ class _HelpItem2 {
   final String text;
   final bool hasImage;
   final bool isNote;
-  _HelpItem2(this.text, {required this.hasImage, this.isNote = false});
+  final String? imagePath;
+  _HelpItem2(this.text, {required this.hasImage, this.isNote = false, this.imagePath});
 }
 
 class _HelpItem extends StatelessWidget {
@@ -214,26 +215,36 @@ class _HelpItem extends StatelessWidget {
             ],
           ),
           if (item.hasImage)
-            Container(
-              margin: const EdgeInsets.only(top: 10, left: 16),
-              height: 160,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FAFE),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
-              ),
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.image_outlined, size: 32, color: Color(0xFFB0CDD5)),
-                    SizedBox(height: 8),
-                    Text('スクリーンショット準備中',
-                      style: TextStyle(fontSize: 12, color: Color(0xFFB0CDD5))),
-                  ],
+            item.imagePath != null
+              ? Container(
+                  margin: const EdgeInsets.only(top: 10, left: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset(item.imagePath!, fit: BoxFit.cover),
+                )
+              : Container(
+                  margin: const EdgeInsets.only(top: 10, left: 16),
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FAFE),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
+                  ),
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.image_outlined, size: 32, color: Color(0xFFB0CDD5)),
+                        SizedBox(height: 8),
+                        Text('スクリーンショット準備中',
+                          style: TextStyle(fontSize: 12, color: Color(0xFFB0CDD5))),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
         ],
       ),
     );
