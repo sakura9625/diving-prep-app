@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/equipment.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
+import '../services/equipment_alert_notifier.dart';
 import '../services/user_service.dart';
 import '../widgets/sky_card.dart';
 
@@ -132,6 +133,11 @@ class _EquipmentScreenState extends State<EquipmentScreen>
       final tripDives = _computeTripDives(equipments, trips, costMap);
 
       if (!mounted) return;
+      final hasAlert = equipments.any((e) {
+        final td = (tripDives[e.id] ?? 0) + e.divesManual;
+        return _alertLevel(e, td) != _AlertLevel.none;
+      });
+      equipmentAlertNotifier.value = hasAlert;
       setState(() {
         _equipments = equipments;
         _tripDives  = tripDives;
@@ -182,6 +188,8 @@ class _EquipmentScreenState extends State<EquipmentScreen>
       int total = 0;
       for (final trip in trips) {
         if (!_isOnOrAfter(trip.date, eq.lastMaintenanceDate)) continue;
+        // ドライスーツはドライ旅行のみ集計
+        if (eq.type == EquipmentType.drySuit && trip.suitType != SuitType.dry) continue;
         final cost = costMap[trip.id];
         if (cost != null) total += cost.diveCount;
       }
@@ -346,11 +354,12 @@ class _EquipmentScreenState extends State<EquipmentScreen>
 
     if (isEdit) {
       setState(() {
+        final maintenanceChanged = equipment.lastMaintenanceDate != maintenanceDate;
         equipment.name                = name;
         equipment.type                = selectedType;
         equipment.purchaseDate        = purchaseDate;
         equipment.lastMaintenanceDate = maintenanceDate;
-        equipment.divesManual         = divesManual;
+        equipment.divesManual         = maintenanceChanged ? 0 : divesManual;
       });
     } else {
       setState(() {

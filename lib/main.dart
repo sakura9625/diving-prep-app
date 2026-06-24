@@ -9,6 +9,7 @@ import 'screens/template_screen.dart';
 import 'screens/marine_life_screen.dart';
 import 'screens/equipment_screen.dart';
 import 'screens/cost_screen.dart';
+import 'services/equipment_alert_notifier.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -149,24 +150,91 @@ class _MainNavigationState extends State<MainNavigation> {
           const TemplateScreen(),
         ],
       ),
-      bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-              top: BorderSide(color: Color(0xFFE8F8FC), width: 1.5)),
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          items: [
-            _navItem('assets/icons/sailboat-solid-full.svg', '旅行準備'),
-            _navItem('assets/icons/mask-solid-full.svg', '器材'),
-            _navItem('assets/icons/fish-solid-full.svg', 'クエスト'),
-            _navItem('assets/icons/chart-simple-solid-full.svg', 'コスト'),
-            _navItem('assets/icons/gear-solid-full.svg', 'テンプレ'),
-          ],
-        ),
+      bottomNavigationBar: ValueListenableBuilder<bool>(
+        valueListenable: equipmentAlertNotifier,
+        builder: (context, hasAlert, _) {
+          return DecoratedBox(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                  top: BorderSide(color: Color(0xFFE8F8FC), width: 1.5)),
+            ),
+            child: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
+              items: [
+                _navItem('assets/icons/sailboat-solid-full.svg', '旅行準備'),
+                BottomNavigationBarItem(
+                  label: '器材',
+                  icon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SvgPicture.asset('assets/icons/mask-solid-full.svg', width: 24, height: 24,
+                            colorFilter: const ColorFilter.mode(Color(0xFFB0CDD5), BlendMode.srcIn)),
+                          const SizedBox(height: 3),
+                        ],
+                      ),
+                      if (hasAlert)
+                        Positioned(
+                          top: -2,
+                          right: -4,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFF5B5B),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  activeIcon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SvgPicture.asset('assets/icons/mask-solid-full.svg', width: 24, height: 24,
+                            colorFilter: const ColorFilter.mode(Color(0xFF4EC8E8), BlendMode.srcIn)),
+                          Container(
+                            margin: const EdgeInsets.only(top: 3),
+                            width: 4,
+                            height: 4,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF4EC8E8),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (hasAlert)
+                        Positioned(
+                          top: -2,
+                          right: -4,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFF5B5B),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                _navItem('assets/icons/fish-solid-full.svg', 'クエスト'),
+                _navItem('assets/icons/chart-simple-solid-full.svg', 'コスト'),
+                _navItem('assets/icons/gear-solid-full.svg', 'テンプレ'),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
