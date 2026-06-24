@@ -796,7 +796,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             : allItems.where((e) => e.bagName == _bagFilter).toList();
 
     final filteredItems = _showUncheckedOnly
-        ? displayItems.where((e) => !e.isChecked).toList()
+        ? displayItems.where((e) => !e.isChecked && e.isNaturallyActive(_isWet, _isOvernight, _isBoat)).toList()
         : displayItems;
 
     if (filteredItems.isEmpty) return const SizedBox.shrink();

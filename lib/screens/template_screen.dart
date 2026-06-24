@@ -750,6 +750,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
                       'メッシュバッグ',
                       'バックパック',
                       '旅行ケース',
+                      ..._customBags,
                       '未設定',
                     ].map((f) {
                       final sel = _bagFilter == f;
