@@ -429,14 +429,14 @@ class _CostScreenState extends State<CostScreen>
         title: const Text('レポート'),
         actions: [
           IconButton(
-            icon: const Text('🔰', style: TextStyle(fontSize: 18)),
-            tooltip: '使い方',
-            onPressed: () => HelpBottomSheet.show(context, HelpTab.report),
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh, size: 20),
             tooltip: '再読み込み',
             onPressed: _loadData,
+          ),
+          IconButton(
+            icon: const Text('🔰', style: TextStyle(fontSize: 18)),
+            tooltip: '使い方',
+            onPressed: () => HelpBottomSheet.show(context, HelpTab.report),
           ),
         ],
       ),

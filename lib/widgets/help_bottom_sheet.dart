@@ -142,7 +142,7 @@ class HelpBottomSheet extends StatelessWidget {
             _HelpItem2('これまでの旅行のコストや本数あたりの単価が確認できます', hasImage: true, imagePath: 'assets/screenshots/help_report_summary.png'),
             _HelpItem2('グラフで本数やコストの推移を確認できます', hasImage: true, imagePath: 'assets/screenshots/help_report_graph.png'),
             _HelpItem2('アクティビティカードでダイビング歴を振り返れます', hasImage: true, imagePath: 'assets/screenshots/help_report_activity1.png'),
-            _HelpItem2('', hasImage: true, imagePath: 'assets/screenshots/help_report_activity2.png'),
+            _HelpItem2('', hasImage: true, imagePath: 'assets/screenshots/help_report_activity2.png', noTopMargin: true),
           ],
         );
       case HelpTab.template:
@@ -173,7 +173,8 @@ class _HelpItem2 {
   final bool hasImage;
   final bool isNote;
   final String? imagePath;
-  _HelpItem2(this.text, {required this.hasImage, this.isNote = false, this.imagePath});
+  final bool noTopMargin;
+  _HelpItem2(this.text, {required this.hasImage, this.isNote = false, this.imagePath, this.noTopMargin = false});
 }
 
 class _HelpItem extends StatelessWidget {
@@ -217,7 +218,7 @@ class _HelpItem extends StatelessWidget {
           ),
           if (item.hasImage)
             Container(
-              margin: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+              margin: EdgeInsets.fromLTRB(0, item.noTopMargin ? 0 : 10, 0, 0),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
