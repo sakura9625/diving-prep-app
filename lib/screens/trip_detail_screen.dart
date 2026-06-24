@@ -543,7 +543,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         ? _genreItems.values.expand((l) => l).toList()
         : <TemplateItem>[];
     final activeItems = allItems
-        .where((e) => e.isNaturallyActive(_isWet, _isOvernight, _isBoat))
+        .where((e) => e.isChecked && e.isNaturallyActive(_isWet, _isOvernight, _isBoat))
         .toList();
     final checkedCount = activeItems.where((e) => e.isChecked).length;
     final progress     = activeItems.isEmpty ? 0.0 : checkedCount / activeItems.length;
@@ -810,7 +810,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     if (filteredItems.isEmpty) return const SizedBox.shrink();
 
     final activeList = allItems
-        .where((e) => e.isNaturallyActive(_isWet, _isOvernight, _isBoat))
+        .where((e) => e.isChecked && e.isNaturallyActive(_isWet, _isOvernight, _isBoat))
         .toList();
     final checked    = activeList.where((e) => e.isChecked).length;
     final sectionDone =
