@@ -44,13 +44,20 @@ class HelpBottomSheet extends StatelessWidget {
                 children: [
                   const Text('🔰', style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 8),
-                  Text(
-                    content.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A3A4A),
+                  Expanded(
+                    child: Text(
+                      content.title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A3A4A),
+                      ),
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF6B8FA0)),
+                    onPressed: () => Navigator.pop(context),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ],
               ),
@@ -68,7 +75,7 @@ class HelpBottomSheet extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F8FC),
+                      color: const Color(0xFFFFF6CC),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -76,7 +83,7 @@ class HelpBottomSheet extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A7A94),
+                        color: Color(0xFF9A7200),
                       ),
                       textAlign: TextAlign.center,
                     ),
