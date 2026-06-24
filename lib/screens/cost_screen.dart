@@ -750,7 +750,7 @@ class _CostScreenState extends State<CostScreen>
                 Container(
                   width: 30, height: 30,
                   decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
-                  child: Icon(icon, size: 16, color: primary),
+                  child: Icon(icon, size: 16, color: Colors.white),
                 ),
                 const Spacer(),
                 if (badge != null)
@@ -840,7 +840,7 @@ class _CostScreenState extends State<CostScreen>
           value: _topLocationByDives!.name,
           sub: '${_topLocationByDives!.diveCount}本',
           icon: Icons.waves,
-          iconBg: const Color(0xFFE6F8FC),
+          iconBg: const Color(0xFF4EC8E8),
           badge: '1位',
         )),
       if (_homePoint != null)
@@ -849,7 +849,7 @@ class _CostScreenState extends State<CostScreen>
           value: _homePoint!.key,
           sub: '${_homePoint!.value}回',
           icon: Icons.home_outlined,
-          iconBg: const Color(0xFFFFF6CC),
+          iconBg: const Color(0xFFFFD233),
           badge: '常連',
         )),
       if (_mostExpensiveLocation != null)
@@ -858,7 +858,7 @@ class _CostScreenState extends State<CostScreen>
           value: _mostExpensiveLocation!.name,
           sub: _yen(_mostExpensiveLocation!.totalCost),
           icon: Icons.attach_money,
-          iconBg: const Color(0xFFFFF0E0),
+          iconBg: const Color(0xFFFF9340),
         )),
       if (_bestCostpaShop != null)
         SizedBox(width: cardWidth, child: card(
@@ -866,7 +866,7 @@ class _CostScreenState extends State<CostScreen>
           value: _bestCostpaShop!.name,
           sub: '${_yen(_bestCostpaShop!.costPerDive)} / 本',
           icon: Icons.emoji_events_outlined,
-          iconBg: const Color(0xFFEEFACC),
+          iconBg: const Color(0xFF7BBF00),
           badge: '最安値',
         )),
       if (_cheapestLocation != null)
@@ -875,7 +875,7 @@ class _CostScreenState extends State<CostScreen>
           value: _cheapestLocation!.name,
           sub: '${_yen(_cheapestLocation!.costPerDive)} / 本',
           icon: Icons.arrow_downward,
-          iconBg: const Color(0xFFEEFACC),
+          iconBg: const Color(0xFF7BBF00),
         )),
       if (_mostExpensivePerDiveLocation != null)
         SizedBox(width: cardWidth, child: card(
@@ -883,7 +883,7 @@ class _CostScreenState extends State<CostScreen>
           value: _mostExpensivePerDiveLocation!.name,
           sub: '${_yen(_mostExpensivePerDiveLocation!.costPerDive)} / 本',
           icon: Icons.arrow_upward,
-          iconBg: const Color(0xFFFFF0F4),
+          iconBg: const Color(0xFFFF8FAB),
         )),
       if (blank['max']! > 0)
         SizedBox(width: cardWidth, child: card(
@@ -891,42 +891,37 @@ class _CostScreenState extends State<CostScreen>
           value: '${blank['max']}日',
           sub: '平均 ${blank['avg']}日',
           icon: Icons.hourglass_empty,
-          iconBg: const Color(0xFFF1EEFF),
+          iconBg: const Color(0xFFA78BFA),
         )),
       if (_longestAbsentLocation != null)
-        SizedBox(
-          width: double.infinity,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Container(
-                    width: 30, height: 30,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1EEFF),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.hourglass_bottom_outlined, size: 16, color: Color(0xFF6D43D4)),
-                  ),
-                ]),
-                const SizedBox(height: 8),
-                const Text('一番久しぶりだった場所', style: TextStyle(fontSize: 10, color: Color(0xFF6B8FA0))),
-                const SizedBox(height: 2),
-                Text(_longestAbsentLocation!['name'] as String,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A3A4A))),
-                Text('${_longestAbsentLocation!['days']}日ぶり',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0))),
-              ],
-            ),
+        SizedBox(width: cardWidth, child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE8F8FC), width: 1.5),
           ),
-        ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFA78BFA),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.hourglass_bottom_outlined, size: 16, color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              const Text('一番久しぶりだった場所', style: TextStyle(fontSize: 10, color: Color(0xFF6B8FA0))),
+              const SizedBox(height: 2),
+              Text(_longestAbsentLocation!['name'] as String,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A3A4A))),
+              Text('${_longestAbsentLocation!['days']}日ぶり',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B8FA0))),
+            ],
+          ),
+        )),
       if (_topLocationsByDives.isNotEmpty)
         SizedBox(
           width: double.infinity,
@@ -996,7 +991,7 @@ class _CostScreenState extends State<CostScreen>
                 Container(
                   width: 30, height: 30,
                   decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
-                  child: Icon(icon, size: 16, color: primary),
+                  child: Icon(icon, size: 16, color: Colors.white),
                 ),
                 const Spacer(),
               ],
@@ -1049,7 +1044,7 @@ class _CostScreenState extends State<CostScreen>
           value: monthNames[topMonth.key - 1],
           sub: '${topMonth.value}本',
           icon: Icons.calendar_today,
-          iconBg: const Color(0xFFE6F8FC),
+          iconBg: const Color(0xFF4EC8E8),
         )),
       if (topYear != null)
         SizedBox(width: cardWidth, child: card(
@@ -1057,7 +1052,7 @@ class _CostScreenState extends State<CostScreen>
           value: '${topYear.key}年',
           sub: '${topYear.value}本',
           icon: Icons.calendar_today,
-          iconBg: const Color(0xFFE6F8FC),
+          iconBg: const Color(0xFF4EC8E8),
         )),
       if (topYearTrips != null)
         SizedBox(width: cardWidth, child: card(
@@ -1065,7 +1060,7 @@ class _CostScreenState extends State<CostScreen>
           value: '${topYearTrips.key}年',
           sub: '${topYearTrips.value}回',
           icon: Icons.flight,
-          iconBg: const Color(0xFFFFF6CC),
+          iconBg: const Color(0xFFFFD233),
         )),
       if (topYearCost != null)
         SizedBox(width: cardWidth, child: card(
@@ -1073,30 +1068,24 @@ class _CostScreenState extends State<CostScreen>
           value: '${topYearCost.key}年',
           sub: _yen(topYearCost.value),
           icon: Icons.attach_money,
-          iconBg: const Color(0xFFFFF0E0),
+          iconBg: const Color(0xFFFF9340),
         )),
       if (topTripByDives != null)
-        SizedBox(
-          width: double.infinity,
-          child: tripDetailCard(
-            label: '最も潜った旅行',
-            entry: topTripByDives,
-            icon: Icons.scuba_diving,
-            iconBg: const Color(0xFFE6F8FC),
-            mainValue: '${topTripByDives.cost.diveCount}本',
-          ),
-        ),
+        SizedBox(width: cardWidth, child: tripDetailCard(
+          label: '最も潜った旅行',
+          entry: topTripByDives,
+          icon: Icons.scuba_diving,
+          iconBg: const Color(0xFF4EC8E8),
+          mainValue: '${topTripByDives.cost.diveCount}本',
+        )),
       if (topTripByCost != null)
-        SizedBox(
-          width: double.infinity,
-          child: tripDetailCard(
-            label: '最もお金を使った旅行',
-            entry: topTripByCost,
-            icon: Icons.wallet_outlined,
-            iconBg: const Color(0xFFFFF0E0),
-            mainValue: _yen(topTripByCost.cost.totalCost),
-          ),
-        ),
+        SizedBox(width: cardWidth, child: tripDetailCard(
+          label: '最もお金を使った旅行',
+          entry: topTripByCost,
+          icon: Icons.wallet_outlined,
+          iconBg: const Color(0xFFFF9340),
+          mainValue: _yen(topTripByCost.cost.totalCost),
+        )),
     ];
 
     return Column(
