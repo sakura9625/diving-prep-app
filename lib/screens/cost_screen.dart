@@ -535,7 +535,7 @@ class _CostScreenState extends State<CostScreen>
           const SizedBox(height: 8),
           _StatRow2(
             left:  _StatTile(label: '累計交通費',     value: _yen(_totalTransport), color: const Color(0xFFA78BFA)),
-            right: _StatTile(label: '累計ダイブ本数', value: '$_totalDives 本',     color: const Color(0xFF7BBF00)),
+            right: _StatTile(label: '潜った海の数', value: '${_filteredEntries.where((e) => e.trip.location != null && e.trip.location!.isNotEmpty).map((e) => e.trip.location!).toSet().length}箇所', color: const Color(0xFF7BBF00)),
           ),
         ],
       ),
