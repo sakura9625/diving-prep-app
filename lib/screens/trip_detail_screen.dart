@@ -77,13 +77,14 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   // ─── データ読み込み ───────────────────────────────
 
   Future<void> _loadData({bool silent = false}) async {
+    if (_userId == null) return;
     if (!silent && mounted) setState(() => _isLoading = true);
 
     // チェックリスト・コストを並列読み込み
     final results = await Future.wait([
-      _db.collection('templates').get(),
-      _db.collection('checks').doc(widget.trip.id).get(),
-      _db.collection('costs').doc(widget.trip.id).get(),
+      _db.collection('users').doc(_userId).collection('templates').get(),
+      _db.collection('users').doc(_userId).collection('checks').doc(widget.trip.id).get(),
+      _db.collection('users').doc(_userId).collection('costs').doc(widget.trip.id).get(),
     ]);
 
     final templatesSnapshot = results[0] as QuerySnapshot;
