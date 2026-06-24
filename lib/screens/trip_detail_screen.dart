@@ -132,7 +132,15 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             for (final item in items) {
               if (saved.containsKey(item.id)) {
                 item.isChecked = saved[item.id] as bool;
+              } else {
+                item.isChecked = false;
               }
+            }
+          }
+        } else {
+          for (final items in genreItems.values) {
+            for (final item in items) {
+              item.isChecked = false;
             }
           }
         }

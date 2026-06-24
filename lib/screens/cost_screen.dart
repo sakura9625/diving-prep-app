@@ -656,6 +656,18 @@ class _CostScreenState extends State<CostScreen>
               ],
             ),
           ),
+          if (_selectedYear != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '$_selectedYear年',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF6B8FA0),
+                ),
+              ),
+            ),
           Container(
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.only(bottom: 12),
@@ -670,10 +682,7 @@ class _CostScreenState extends State<CostScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _selectedYear != null ? '$_selectedYear年の旅行数' : '累計旅行数',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                      ),
+                      Text('旅行数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                       const SizedBox(height: 4),
                       Text(
                         '${_filteredPastEntries.length}回',
@@ -689,10 +698,7 @@ class _CostScreenState extends State<CostScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _selectedYear != null ? '$_selectedYear年の計画本数' : '計画本数',
-                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                        ),
+                        Text('計画本数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                         const SizedBox(height: 4),
                         Text(
                           '${_filteredPlannedDives}本',
@@ -709,10 +715,7 @@ class _CostScreenState extends State<CostScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _selectedYear != null ? '$_selectedYear年のダイブ本数' : '累計ダイブ本数',
-                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                        ),
+                        Text('ダイブ本数', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                         const SizedBox(height: 4),
                         Text(
                           '${_filteredPastEntries.fold(0, (s, e) => s + e.cost.diveCount)}本',

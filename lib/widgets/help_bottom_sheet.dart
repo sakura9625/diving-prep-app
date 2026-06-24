@@ -72,20 +72,23 @@ class HelpBottomSheet extends StatelessWidget {
                   for (final item in content.items)
                     _HelpItem(item: item),
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFD233),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      content.closing,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A3A4A),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFD233),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      textAlign: TextAlign.center,
+                      child: Text(
+                        content.closing,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A3A4A),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
                 ],
