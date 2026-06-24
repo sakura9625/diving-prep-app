@@ -124,6 +124,17 @@ class _TripDetailScreenState extends State<TripDetailScreen>
           }
         }
 
+        // まずテンプレートのcheckStatesを適用
+        for (final items in genreItems.values) {
+          for (final item in items) {
+            if (template.checkStates.containsKey(item.id)) {
+              item.isChecked = template.checkStates[item.id]!;
+            } else {
+              item.isChecked = false;
+            }
+          }
+        }
+
         if (checksDoc.exists) {
           final saved =
               (checksDoc.data()! as Map<String, dynamic>)['data']
@@ -135,12 +146,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
               } else {
                 item.isChecked = false;
               }
-            }
-          }
-        } else {
-          for (final items in genreItems.values) {
-            for (final item in items) {
-              item.isChecked = false;
             }
           }
         }
