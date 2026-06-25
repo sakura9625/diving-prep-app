@@ -144,7 +144,7 @@ class HelpBottomSheet extends StatelessWidget {
             _HelpItem2('旅行詳細ではダイブ本数・費用を記録でき、レポートでアクティビティ履歴が確認できます', hasImage: false),
             _HelpItem2('テンプレートを使うには、先にテンプレタブで自分用の準備リストをカスタムして保存してください', hasImage: false, isNote: true),
           ],
-          limitNote: '今後の旅行は5件まで登録できます。過去の旅行は無制限で登録できます。\n過去の旅行をできるだけ登録しておくと、アクティビティレポートが楽しめます。\n登録上限数はTravel Packでさらに追加できます。',
+          limitNote: '今後の旅行は5件まで登録できます。過去の旅行は無制限で登録できます。過去の旅行をできるだけ登録しておくと、アクティビティレポートが楽しめます。登録上限数はTravel Packでさらに追加できます。',
         );
       case HelpTab.equipment:
         return _HelpContent(
