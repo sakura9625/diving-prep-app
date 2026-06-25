@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/template_item.dart';
+import '../services/permission_service.dart';
 import '../services/user_service.dart';
 import '../utils/checklist_data.dart';
 import '../widgets/help_bottom_sheet.dart';
 import '../widgets/sky_card.dart';
+import '../widgets/upgrade_dialog.dart';
 
 // ─── 画面 ─────────────────────────────────────────────────────────────────────
 
@@ -19,6 +21,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
   final _db = FirebaseFirestore.instance;
 
   String? _userId;
+  bool _isPremium = false;
   late Map<String, List<TemplateItem>> _genreItems;
   bool _isWetSuit   = true;
   bool _isOvernight = false;
@@ -40,6 +43,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
 
   Future<void> _initUser() async {
     _userId = await UserService.getUserId();
+    _isPremium = await PermissionService.isPremium();
     _loadCustomItems();
     _loadSavedTemplates();
     _loadMasterBagDefaults();
@@ -425,6 +429,11 @@ class _TemplateScreenState extends State<TemplateScreen> {
               final name = ctrl.text.trim();
               if (name.isEmpty) return;
               final existingIdx = _savedTemplates.indexWhere((t) => t.name == name);
+              if (existingIdx < 0 && !_isPremium && _savedTemplates.length >= PermissionService.maxTemplates) {
+                Navigator.pop(ctx);
+                UpgradeDialog.show(context);
+                return;
+              }
               Navigator.pop(ctx);
               if (existingIdx >= 0) {
                 _showOverwriteConfirmDialog(name, existingIdx);

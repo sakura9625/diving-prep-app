@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
+import '../services/permission_service.dart';
 import '../services/user_service.dart';
 import '../widgets/help_bottom_sheet.dart';
+import '../widgets/upgrade_dialog.dart';
 import '../widgets/sky_card.dart';
 import 'trip_detail_screen.dart';
 
@@ -19,6 +21,7 @@ class _TravelScreenState extends State<TravelScreen> {
   final _db = FirebaseFirestore.instance;
 
   String? _userId;
+  bool _isPremium = false;
   final List<Trip> _trips = [];
   List<SavedTemplate> _savedTemplates = [];
   List<String> _savedLocations = [];
@@ -34,9 +37,21 @@ class _TravelScreenState extends State<TravelScreen> {
 
   Future<void> _initUser() async {
     _userId = await UserService.getUserId();
+    _isPremium = await PermissionService.isPremium();
     _loadTrips();
     _loadTemplates();
     _loadHistory();
+  }
+
+  Future<void> _tryAddTrip({DateTime? initialDate}) async {
+    if (!_isPremium) {
+      final count = await PermissionService.countTripsAfterInstall(_trips);
+      if (count >= PermissionService.maxTrips) {
+        if (mounted) UpgradeDialog.show(context);
+        return;
+      }
+    }
+    _showAddTripDialog(initialDate: initialDate);
   }
 
   // ─── 旅行の永続化 ──────────────────────────────────
@@ -133,7 +148,7 @@ class _TravelScreenState extends State<TravelScreen> {
 
     final trips = _tripsForDay(selectedDay);
     if (trips.isEmpty) {
-      _showAddTripDialog(initialDate: selectedDay);
+      _tryAddTrip(initialDate: selectedDay);
     } else {
       _openDetail(trips.first);
     }
@@ -639,7 +654,7 @@ class _TravelScreenState extends State<TravelScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () => _showAddTripDialog(),
+                  onPressed: () => _tryAddTrip(),
                   icon: const Icon(Icons.add, color: Colors.white, size: 18),
                   label: const Text('旅行を追加'),
                   style: FilledButton.styleFrom(

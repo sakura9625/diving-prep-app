@@ -4,8 +4,10 @@ import '../models/equipment.dart';
 import '../models/trip.dart';
 import '../models/trip_cost.dart';
 import '../services/equipment_alert_notifier.dart';
+import '../services/permission_service.dart';
 import '../services/user_service.dart';
 import '../widgets/help_bottom_sheet.dart';
+import '../widgets/upgrade_dialog.dart';
 import '../widgets/sky_card.dart';
 
 // --- アラートレベル ---
@@ -72,6 +74,7 @@ class _EquipmentScreenState extends State<EquipmentScreen>
   final _db = FirebaseFirestore.instance;
 
   String? _userId;
+  bool _isPremium = false;
   List<Equipment> _equipments = [];
   Map<String, int> _tripDives = {};
   bool _isLoading = true;
@@ -85,6 +88,7 @@ class _EquipmentScreenState extends State<EquipmentScreen>
 
   Future<void> _initUser() async {
     _userId = await UserService.getUserId();
+    _isPremium = await PermissionService.isPremium();
     _loadData();
   }
 
@@ -450,7 +454,13 @@ class _EquipmentScreenState extends State<EquipmentScreen>
                   child: SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () => _showEquipmentDialog(),
+                      onPressed: () {
+                        if (!_isPremium && _equipments.length >= PermissionService.maxEquipment) {
+                          UpgradeDialog.show(context);
+                          return;
+                        }
+                        _showEquipmentDialog();
+                      },
                       icon: const Icon(Icons.add, size: 16, color: Color(0xFF4EC8E8)),
                       label: const Text('器材を追加'),
                       style: OutlinedButton.styleFrom(
