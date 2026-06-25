@@ -638,7 +638,7 @@ class _EquipmentCard extends StatelessWidget {
                         _StatChip(
                           label: '経過',
                           value: '$daysSinceMaintenance日',
-                          highlight: daysSinceMaintenance >= 365,
+                          highlight: alertLevel != _AlertLevel.none && daysSinceMaintenance >= 365,
                           alertColor: alertColor,
                         ),
                         const SizedBox(width: 8),
