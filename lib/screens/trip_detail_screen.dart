@@ -96,8 +96,8 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     bool hasTemplate = false;
     bool isBoat = true;
 
+    SavedTemplate? template;
     if (widget.trip.templateName != null) {
-      SavedTemplate? template;
       final matches = templatesSnapshot.docs
           .map((d) => SavedTemplate.fromJson(d.data() as Map<String, dynamic>))
           .where((t) => t.name == widget.trip.templateName)
