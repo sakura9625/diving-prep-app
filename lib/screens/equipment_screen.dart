@@ -17,6 +17,12 @@ enum _AlertLevel { none, orange, red }
 int _daysSince(DateTime date) => DateTime.now().difference(date).inDays;
 
 _AlertLevel _alertLevel(Equipment e, int totalDives) {
+  // BCD・レギュレーター・ドライスーツのみアラート対象
+  if (e.type != EquipmentType.bcd &&
+      e.type != EquipmentType.regulator &&
+      e.type != EquipmentType.drySuit) {
+    return _AlertLevel.none;
+  }
   final daysAlert  = _daysSince(e.lastMaintenanceDate) >= 365;
   final divesAlert = totalDives >= 100;
   if (daysAlert && divesAlert) return _AlertLevel.red;
