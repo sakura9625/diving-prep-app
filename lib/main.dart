@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'firebase_options.dart';
 import 'screens/travel_screen.dart';
 import 'screens/template_screen.dart';
@@ -10,6 +11,7 @@ import 'screens/marine_life_screen.dart';
 import 'screens/equipment_screen.dart';
 import 'screens/cost_screen.dart';
 import 'services/equipment_alert_notifier.dart';
+import 'services/update_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -99,6 +101,45 @@ class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
   int _equipmentRefreshKey = 0;
   int _costRefreshKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdate();
+  }
+
+  Future<void> _checkForUpdate() async {
+    final available = await UpdateService.isUpdateAvailable();
+    if (!available || !mounted) return;
+    final storeUrl = await UpdateService.getStoreUrl();
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('アップデートのお知らせ'),
+        content: const Text('新しいバージョンが利用可能です。\nより快適にお使いいただくためにアップデートをお願いします。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('あとで'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              if (storeUrl.isNotEmpty) {
+                final uri = Uri.parse(storeUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              }
+            },
+            child: const Text('今すぐアップデート'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _onItemTapped(int index) {
     if (index == 1) _equipmentRefreshKey++;
