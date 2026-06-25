@@ -72,6 +72,35 @@ class HelpBottomSheet extends StatelessWidget {
                   for (final item in content.items)
                     _HelpItem(item: item),
                   const SizedBox(height: 16),
+                  if (content.limitNote != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF0E0),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFF9340).withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline, size: 16, color: Color(0xFFC45A00)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              content.limitNote!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFC45A00),
+                                height: 1.6,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
@@ -115,6 +144,7 @@ class HelpBottomSheet extends StatelessWidget {
             _HelpItem2('旅行詳細ではダイブ本数・費用を記録でき、レポートでアクティビティ履歴が確認できます', hasImage: false),
             _HelpItem2('テンプレートを使うには、先にテンプレタブで自分用の準備リストをカスタムして保存してください', hasImage: false, isNote: true),
           ],
+          limitNote: '今後の旅行は5件まで登録できます。過去の旅行は無制限で登録できます。\n過去の旅行をできるだけ登録しておくと、アクティビティレポートが楽しめます。\n登録上限数はTravel Packでさらに追加できます。',
         );
       case HelpTab.equipment:
         return _HelpContent(
@@ -126,6 +156,7 @@ class HelpBottomSheet extends StatelessWidget {
             _HelpItem2('旅行データと連動してダイブ本数を自動集計します', hasImage: false),
             _HelpItem2('ドライスーツはドライ旅行の本数のみカウントします', hasImage: false),
           ],
+          limitNote: '器材は3件まで登録できます。Travel Packで無制限になります。',
         );
       case HelpTab.quest:
         return _HelpContent(
@@ -159,6 +190,7 @@ class HelpBottomSheet extends StatelessWidget {
             _HelpItem2('アイテムをどのカバンに入れるか割り当てられます', hasImage: false),
             _HelpItem2('作成したテンプレートを旅行に適用すると準備リストが自動生成されます', hasImage: true, imagePath: 'assets/screenshots/help_template_apply.png'),
           ],
+          limitNote: 'テンプレートは1件まで保存できます。Travel Packで無制限になります。',
         );
     }
   }
@@ -168,7 +200,8 @@ class _HelpContent {
   final String title;
   final String closing;
   final List<_HelpItem2> items;
-  _HelpContent({required this.title, required this.closing, required this.items});
+  final String? limitNote;
+  _HelpContent({required this.title, required this.closing, required this.items, this.limitNote});
 }
 
 class _HelpItem2 {
