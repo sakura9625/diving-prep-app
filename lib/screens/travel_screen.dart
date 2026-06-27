@@ -44,8 +44,9 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   Future<void> _tryAddTrip({DateTime? initialDate}) async {
-    if (!_isPremium) {
-      final maxTrips = await PermissionService.getMaxTrips();
+    final maxTrips = await PermissionService.getMaxTrips();
+    if (maxTrips < 999999) {
+      // 無制限でない場合のみチェック
       final count = await PermissionService.countTripsAfterInstall(_trips);
       if (count >= maxTrips) {
         if (mounted) UpgradeDialog.show(context);
