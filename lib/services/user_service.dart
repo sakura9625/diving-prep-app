@@ -13,6 +13,8 @@ class UserService {
     final saved = prefs.getString('user_id');
     if (saved != null) {
       _userId = saved;
+      // installedAtが未保存の場合は保存
+      await _saveInstalledAt(saved);
       return _userId!;
     }
 

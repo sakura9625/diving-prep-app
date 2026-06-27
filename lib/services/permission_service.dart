@@ -93,10 +93,11 @@ class PermissionService {
   // アプリ導入日以降の旅行数をカウント
   static Future<int> countTripsAfterInstall(List<dynamic> trips) async {
     final installedAt = await UserService.getInstalledAt();
-    if (installedAt == null) return trips.length;
+    if (installedAt == null) return 0;
+    final installDay = DateTime(installedAt.year, installedAt.month, installedAt.day);
     return trips.where((t) {
       final date = t.date as DateTime;
-      return !date.isBefore(DateTime(installedAt.year, installedAt.month, installedAt.day));
+      return !date.isBefore(installDay);
     }).length;
   }
 }
