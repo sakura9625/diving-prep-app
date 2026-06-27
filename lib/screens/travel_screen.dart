@@ -44,9 +44,21 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   Future<void> _tryAddTrip({DateTime? initialDate}) async {
+    // 導入日を取得
+    final installedAt = await UserService.getInstalledAt();
+
+    // 導入日より前の日付を指定している場合は制限なし
+    if (initialDate != null && installedAt != null) {
+      final installDay = DateTime(installedAt.year, installedAt.month, installedAt.day);
+      final tripDay = DateTime(initialDate.year, initialDate.month, initialDate.day);
+      if (tripDay.isBefore(installDay)) {
+        _showAddTripDialog(initialDate: initialDate);
+        return;
+      }
+    }
+
     final maxTrips = await PermissionService.getMaxTrips();
     if (maxTrips < 999999) {
-      // 無制限でない場合のみチェック
       final count = await PermissionService.countTripsAfterInstall(_trips);
       if (count >= maxTrips) {
         if (mounted) UpgradeDialog.show(context);
