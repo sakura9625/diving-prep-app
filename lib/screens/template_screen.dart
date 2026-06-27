@@ -406,6 +406,10 @@ class _TemplateScreenState extends State<TemplateScreen> {
 
   void _showSaveDialog() {
     final ctrl = TextEditingController(text: _loadedTemplateName ?? '');
+    PermissionService.reset();
+    PermissionService.isPremium().then((value) {
+      setState(() => _isPremium = value);
+    });
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
