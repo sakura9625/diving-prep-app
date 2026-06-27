@@ -19,20 +19,52 @@ class PermissionService {
           return true;
         }
       }
-      // 購入済みフラグを確認（将来の課金実装用）
+      // 購入済みフラグを確認
       final userDoc = await _db
           .collection('users').doc(userId)
           .collection('settings').doc('purchase')
           .get();
       if (userDoc.exists) {
-        _isPremium = (userDoc.data()!['isPremium'] as bool?) ?? false;
-        return _isPremium!;
+        final data = userDoc.data()!;
+        // Lifetimeを購入済みの場合
+        if (data['isLifetime'] == true) {
+          _isPremium = true;
+          return true;
+        }
+        // Travel Packを購入済みの場合
+        if (data['isPremium'] == true) {
+          _isPremium = true;
+          return true;
+        }
       }
       _isPremium = false;
       return false;
     } catch (_) {
       return false;
     }
+  }
+
+  // Travel Packの追加スロット数を取得
+  static Future<int> getExtraTripSlots() async {
+    try {
+      final userId = await UserService.getUserId();
+      final doc = await _db
+          .collection('users').doc(userId)
+          .collection('settings').doc('purchase')
+          .get();
+      if (!doc.exists) return 0;
+      return (doc.data()!['extraTripSlots'] as int?) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  // 旅行の上限数を取得（基本5件 + Travel Pack追加分）
+  static Future<int> getMaxTrips() async {
+    final isPrem = await isPremium();
+    if (isPrem) return 999999;
+    final extra = await getExtraTripSlots();
+    return maxTrips + extra;
   }
 
   static void reset() => _isPremium = null;

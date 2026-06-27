@@ -11,6 +11,7 @@ import 'screens/marine_life_screen.dart';
 import 'screens/equipment_screen.dart';
 import 'screens/cost_screen.dart';
 import 'services/equipment_alert_notifier.dart';
+import 'services/purchase_service.dart';
 import 'services/update_service.dart';
 
 void main() async {
@@ -106,6 +107,13 @@ class _MainNavigationState extends State<MainNavigation> {
   void initState() {
     super.initState();
     _checkForUpdate();
+    PurchaseService.initialize();
+  }
+
+  @override
+  void dispose() {
+    PurchaseService.dispose();
+    super.dispose();
   }
 
   Future<void> _checkForUpdate() async {
