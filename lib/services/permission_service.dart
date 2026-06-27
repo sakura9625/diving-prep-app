@@ -26,13 +26,8 @@ class PermissionService {
           .get();
       if (userDoc.exists) {
         final data = userDoc.data()!;
-        // Lifetimeを購入済みの場合
-        if (data['isLifetime'] == true) {
-          _isPremium = true;
-          return true;
-        }
-        // Travel Packを購入済みの場合
-        if (data['isPremium'] == true) {
+        // Travel PackまたはLifetimeを購入済みの場合はpremium
+        if (data['isPremium'] == true || data['isLifetime'] == true) {
           _isPremium = true;
           return true;
         }
@@ -61,10 +56,32 @@ class PermissionService {
 
   // 旅行の上限数を取得（基本5件 + Travel Pack追加分）
   static Future<int> getMaxTrips() async {
-    final isPrem = await isPremium();
-    if (isPrem) return 999999;
-    final extra = await getExtraTripSlots();
-    return maxTrips + extra;
+    try {
+      final userId = await UserService.getUserId();
+      // 特別扱いリストを確認
+      final doc = await _db.collection('config').doc('permissions').get();
+      if (doc.exists) {
+        final premiumIds = List<String>.from(
+            (doc.data()!['premiumDeviceIds'] as List? ?? []));
+        if (premiumIds.contains(userId)) return 999999;
+      }
+      // 購入済みフラグを確認
+      final userDoc = await _db
+          .collection('users').doc(userId)
+          .collection('settings').doc('purchase')
+          .get();
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        // Lifetimeのみ無制限
+        if (data['isLifetime'] == true) return 999999;
+        // Travel Packは+20件ずつ
+        final extra = (data['extraTripSlots'] as int?) ?? 0;
+        return maxTrips + extra;
+      }
+      return maxTrips;
+    } catch (_) {
+      return maxTrips;
+    }
   }
 
   static void reset() => _isPremium = null;
