@@ -418,6 +418,11 @@ class _EquipmentScreenState extends State<EquipmentScreen>
         title: const Text('マイ器材'),
         actions: [
           IconButton(
+            icon: const Text('💎', style: TextStyle(fontSize: 18)),
+            tooltip: 'プランを見る',
+            onPressed: () => UpgradeDialog.show(context),
+          ),
+          IconButton(
             icon: const Text('🔰', style: TextStyle(fontSize: 18)),
             tooltip: '使い方',
             onPressed: () => HelpBottomSheet.show(context, HelpTab.equipment),

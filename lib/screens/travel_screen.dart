@@ -554,6 +554,11 @@ class _TravelScreenState extends State<TravelScreen> {
         title: const Text('旅行準備'),
         actions: [
           IconButton(
+            icon: const Text('💎', style: TextStyle(fontSize: 18)),
+            tooltip: 'プランを見る',
+            onPressed: () => UpgradeDialog.show(context),
+          ),
+          IconButton(
             icon: const Text('🔰', style: TextStyle(fontSize: 18)),
             tooltip: '使い方',
             onPressed: () => HelpBottomSheet.show(context, HelpTab.travel),

@@ -473,6 +473,11 @@ class _TemplateScreenState extends State<TemplateScreen> {
         title: const Text('準備リストの設定'),
         actions: [
           IconButton(
+            icon: const Text('💎', style: TextStyle(fontSize: 18)),
+            tooltip: 'プランを見る',
+            onPressed: () => UpgradeDialog.show(context),
+          ),
+          IconButton(
             icon: const Text('🔰', style: TextStyle(fontSize: 18)),
             tooltip: '使い方',
             onPressed: () => HelpBottomSheet.show(context, HelpTab.template),

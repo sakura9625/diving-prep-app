@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/user_service.dart';
 import '../widgets/help_bottom_sheet.dart';
 import '../widgets/sky_card.dart';
+import '../widgets/upgrade_dialog.dart';
 
 // --- データモデル ---
 class MarineLifeItem {
@@ -484,6 +485,11 @@ class _MarineLifeScreenState extends State<MarineLifeScreen> {
       appBar: AppBar(
         title: const Text('生物クエスト'),
         actions: [
+          IconButton(
+            icon: const Text('💎', style: TextStyle(fontSize: 18)),
+            tooltip: 'プランを見る',
+            onPressed: () => UpgradeDialog.show(context),
+          ),
           IconButton(
             icon: const Text('🔰', style: TextStyle(fontSize: 18)),
             tooltip: '使い方',
