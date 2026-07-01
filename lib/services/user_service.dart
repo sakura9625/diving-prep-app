@@ -80,4 +80,10 @@ class UserService {
     final id = await getUserId();
     return 'users/$id';
   }
+
+  static Future<void> overrideUserId(String newId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', newId);
+    _userId = newId;
+  }
 }

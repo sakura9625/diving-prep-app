@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/purchase_service.dart';
+import '../screens/dive_cloud_screen.dart';
 
 class UpgradeDialog {
   static void show(BuildContext context) {
@@ -84,9 +85,12 @@ class _UpgradeSheetState extends State<_UpgradeSheet> {
                 description: 'クラウド保存・自動バックアップ・複数端末同期',
                 price: '${diveCloud.price}/年',
                 color: const Color(0xFFA78BFA),
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(context);
-                  await PurchaseService.buy(diveCloud);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DiveCloudScreen()),
+                  );
                 },
               ),
             const SizedBox(height: 16),
