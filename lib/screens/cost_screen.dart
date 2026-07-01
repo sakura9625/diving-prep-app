@@ -205,6 +205,12 @@ class _CostScreenState extends State<CostScreen>
           ? _futureEntries
           : _futureEntries.where((e) => e.trip.date.year == _selectedYear).toList();
 
+  // アクティビティカード用（過去の旅行のみ・年フィルター対象）
+  List<_TripEntry> get _filteredPastEntriesForActivity =>
+      _selectedYear == null
+          ? _pastEntries
+          : _pastEntries.where((e) => e.trip.date.year == _selectedYear).toList();
+
   int get _lifetimeTrips => _pastEntries.length;
 
   int get _totalPlannedDives => _futureEntries.fold(0, (s, e) => s + e.cost.diveCount);
@@ -217,7 +223,7 @@ class _CostScreenState extends State<CostScreen>
 
   List<_GroupData> get _topLocationsByDives {
     final map = <String, _GroupData>{};
-    for (final e in _filteredEntries) {
+    for (final e in _filteredPastEntriesForActivity) {
       final key = e.trip.location?.isNotEmpty == true ? e.trip.location! : null;
       if (key == null) continue;
       map.putIfAbsent(key, () => _GroupData(name: key)).add(e.cost);
@@ -228,7 +234,7 @@ class _CostScreenState extends State<CostScreen>
 
   List<MapEntry<String, int>> get _topShopsByTrips {
     final map = <String, int>{};
-    for (final e in _filteredEntries) {
+    for (final e in _filteredPastEntriesForActivity) {
       final key = e.trip.shopName?.isNotEmpty == true ? e.trip.shopName! : null;
       if (key == null) continue;
       map[key] = (map[key] ?? 0) + 1;
@@ -237,11 +243,11 @@ class _CostScreenState extends State<CostScreen>
     return list.take(3).toList();
   }
 
-  _GroupData? get _topLocationByDives => _locationData.isNotEmpty ? _locationData.first : null;
+  _GroupData? get _topLocationByDives => _activityLocationData.isNotEmpty ? _activityLocationData.first : null;
 
   MapEntry<String, int>? get _homePoint {
     final map = <String, int>{};
-    for (final e in _filteredEntries) {
+    for (final e in _filteredPastEntriesForActivity) {
       final key = e.trip.location?.isNotEmpty == true ? e.trip.location! : null;
       if (key == null) continue;
       map[key] = (map[key] ?? 0) + 1;
@@ -250,28 +256,28 @@ class _CostScreenState extends State<CostScreen>
     return map.entries.reduce((a, b) => a.value >= b.value ? a : b);
   }
 
-  _GroupData? get _mostExpensiveLocation => _locationData.isNotEmpty ? _locationData.first : null;
+  _GroupData? get _mostExpensiveLocation => _activityLocationData.isNotEmpty ? _activityLocationData.first : null;
 
   _GroupData? get _bestCostpaShop {
-    final list = _shopData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
+    final list = _activityShopData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
       ..sort((a, b) => a.costPerDive.compareTo(b.costPerDive));
     return list.isNotEmpty ? list.first : null;
   }
 
   _GroupData? get _cheapestLocation {
-    final list = _locationData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
+    final list = _activityLocationData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
       ..sort((a, b) => a.costPerDive.compareTo(b.costPerDive));
     return list.isNotEmpty ? list.first : null;
   }
 
   _GroupData? get _mostExpensivePerDiveLocation {
-    final list = _locationData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
+    final list = _activityLocationData.where((e) => e.diveCount > 0 && e.costPerDive > 0).toList()
       ..sort((a, b) => b.costPerDive.compareTo(a.costPerDive));
     return list.isNotEmpty ? list.first : null;
   }
 
   Map<String, int> get _blankStats {
-    final sorted = [..._filteredEntries]..sort((a, b) => a.trip.date.compareTo(b.trip.date));
+    final sorted = [..._filteredPastEntriesForActivity]..sort((a, b) => a.trip.date.compareTo(b.trip.date));
     if (sorted.length < 2) return {'max': 0, 'avg': 0};
     int maxBlank = 0, totalBlank = 0;
     for (int i = 1; i < sorted.length; i++) {
@@ -283,8 +289,8 @@ class _CostScreenState extends State<CostScreen>
   }
 
   Map<String, dynamic>? get _longestAbsentLocation {
-    if (_filteredEntries.length < 2) return null;
-    final sorted = [..._filteredEntries]..sort((a, b) => a.trip.date.compareTo(b.trip.date));
+    if (_filteredPastEntriesForActivity.length < 2) return null;
+    final sorted = [..._filteredPastEntriesForActivity]..sort((a, b) => a.trip.date.compareTo(b.trip.date));
     final locationVisits = <String, List<DateTime>>{};
     for (final e in sorted) {
       final loc = e.trip.location;
@@ -314,7 +320,7 @@ class _CostScreenState extends State<CostScreen>
         .where((e) => e.trip.date.year < _selectedYear! && e.trip.location?.isNotEmpty == true)
         .map((e) => e.trip.location!)
         .toSet();
-    final thisYear = _filteredEntries
+    final thisYear = _filteredPastEntriesForActivity
         .where((e) => e.trip.location?.isNotEmpty == true)
         .map((e) => e.trip.location!)
         .toSet();
@@ -382,6 +388,31 @@ class _CostScreenState extends State<CostScreen>
   List<_GroupData> get _shopData {
     final map = <String, _GroupData>{};
     for (final e in _filteredEntries) {
+      final key = (e.trip.shopName?.isNotEmpty == true)
+          ? e.trip.shopName!
+          : '（未設定）';
+      map.putIfAbsent(key, () => _GroupData(name: key)).add(e.cost);
+    }
+    return map.values.toList()
+      ..sort((a, b) => b.totalCost.compareTo(a.totalCost));
+  }
+
+  // アクティビティカード用（過去の旅行のみ・年フィルター対象）
+  List<_GroupData> get _activityLocationData {
+    final map = <String, _GroupData>{};
+    for (final e in _filteredPastEntriesForActivity) {
+      final key = (e.trip.location?.isNotEmpty == true)
+          ? e.trip.location!
+          : '（未設定）';
+      map.putIfAbsent(key, () => _GroupData(name: key)).add(e.cost);
+    }
+    return map.values.toList()
+      ..sort((a, b) => b.totalCost.compareTo(a.totalCost));
+  }
+
+  List<_GroupData> get _activityShopData {
+    final map = <String, _GroupData>{};
+    for (final e in _filteredPastEntriesForActivity) {
       final key = (e.trip.shopName?.isNotEmpty == true)
           ? e.trip.shopName!
           : '（未設定）';
