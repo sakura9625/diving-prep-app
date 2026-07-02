@@ -259,9 +259,9 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
     try {
       final results = await Future.wait([
-        _db.collection('templates').get(),
-        _db.collection('history').doc('locations').get(),
-        _db.collection('history').doc('shops').get(),
+        _db.collection('users').doc(_userId).collection('templates').get(),
+        _db.collection('users').doc(_userId).collection('history').doc('locations').get(),
+        _db.collection('users').doc(_userId).collection('history').doc('shops').get(),
       ]);
       templates = (results[0] as QuerySnapshot).docs
           .map((d) => SavedTemplate.fromJson(d.data() as Map<String, dynamic>))
