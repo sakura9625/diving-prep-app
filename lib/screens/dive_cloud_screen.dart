@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/apple_auth_service.dart';
 import '../services/purchase_service.dart';
 
@@ -68,6 +69,41 @@ class _DiveCloudScreenState extends State<DiveCloudScreen> {
             _FeatureRow(icon: Icons.cloud_outlined, text: 'クラウド保存・自動バックアップ'),
             _FeatureRow(icon: Icons.phone_iphone, text: '複数端末で同期（iPhone・iPad）'),
             _FeatureRow(icon: Icons.restore, text: '機種変更時もデータを復元'),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () => launchUrl(
+                    Uri.parse('https://sakura9625.github.io/diving-prep-app/privacy-policy.html'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: const Text(
+                    'プライバシーポリシー',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF4EC8E8),
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                const Text('　|　', style: TextStyle(fontSize: 12, color: Color(0xFF6B8FA0))),
+                GestureDetector(
+                  onTap: () => launchUrl(
+                    Uri.parse('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: const Text(
+                    '利用規約（EULA）',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF4EC8E8),
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 32),
             Container(
               padding: const EdgeInsets.all(16),
