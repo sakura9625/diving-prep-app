@@ -82,4 +82,33 @@ class AppleAuthService {
 
     } catch (_) {}
   }
+
+  static Future<bool> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+      final userId = user.uid;
+
+      // Firestoreのデータを削除
+      final db = FirebaseFirestore.instance;
+      const collections = [
+        'trips', 'costs', 'checks', 'templates',
+        'equipment', 'history', 'marineLife', 'settings'
+      ];
+      for (final col in collections) {
+        final snapshot = await db
+            .collection('users').doc(userId)
+            .collection(col).get();
+        for (final doc in snapshot.docs) {
+          await doc.reference.delete();
+        }
+      }
+
+      // Firebaseアカウントを削除
+      await user.delete();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }

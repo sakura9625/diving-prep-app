@@ -128,6 +128,48 @@ class _DiveCloudScreenState extends State<DiveCloudScreen> {
                   child: const Text('Dive Cloudを購入する'),
                 ),
               ),
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton(
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('アカウントを削除'),
+                        content: const Text('アカウントとすべてのデータを削除します。この操作は取り消せません。'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('キャンセル'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                            child: const Text('削除する'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true || !mounted) return;
+                    final success = await AppleAuthService.deleteAccount();
+                    if (!mounted) return;
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('アカウントを削除しました')),
+                      );
+                      Navigator.pop(context);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')),
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'アカウントを削除する',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+              ),
             ] else ...[
               SizedBox(
                 width: double.infinity,

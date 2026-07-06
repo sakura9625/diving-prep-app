@@ -93,15 +93,15 @@ class _UpgradeSheetState extends State<_UpgradeSheet> {
                   );
                 },
               ),
-            const SizedBox(height: 16),
-            Center(
-              child: TextButton(
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
                 onPressed: () async {
                   Navigator.pop(context);
                   await PurchaseService.restorePurchases();
                 },
-                child: const Text('購入を復元する',
-                  style: TextStyle(color: Color(0xFF6B8FA0))),
+                child: const Text('購入を復元する'),
               ),
             ),
           ],
