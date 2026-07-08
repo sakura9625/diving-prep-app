@@ -181,11 +181,11 @@ class _CostScreenState extends State<CostScreen>
           ? _entries
           : _entries.where((e) => e.trip.date.year == _selectedYear).toList();
 
-  int get _totalDives         => _filteredEntries.fold(0, (s, e) => s + e.cost.diveCount);
-  int get _totalCost          => _filteredEntries.fold(0, (s, e) => s + e.cost.totalCost);
-  int get _totalDiveCost      => _filteredEntries.fold(0, (s, e) => s + e.cost.diveCost);
-  int get _totalAccommodation => _filteredEntries.fold(0, (s, e) => s + e.cost.accommodation);
-  int get _totalTransport     => _filteredEntries.fold(0, (s, e) => s + e.cost.transportTotal);
+  int get _totalDives         => _filteredPastEntries.fold(0, (s, e) => s + e.cost.diveCount);
+  int get _totalCost          => _filteredPastEntries.fold(0, (s, e) => s + e.cost.totalCost);
+  int get _totalDiveCost      => _filteredPastEntries.fold(0, (s, e) => s + e.cost.diveCost);
+  int get _totalAccommodation => _filteredPastEntries.fold(0, (s, e) => s + e.cost.accommodation);
+  int get _totalTransport     => _filteredPastEntries.fold(0, (s, e) => s + e.cost.transportTotal);
   int get _avgCostPerDive     => _totalDives > 0 ? _totalCost ~/ _totalDives : 0;
 
   final _today = DateTime.now();
@@ -361,7 +361,7 @@ class _CostScreenState extends State<CostScreen>
 
   List<_MonthData> get _monthlyData {
     final map = <String, _MonthData>{};
-    for (final e in _filteredEntries) {
+    for (final e in _filteredPastEntries) {
       final key = '${e.trip.date.year}/${e.trip.date.month.toString().padLeft(2, '0')}';
       map.putIfAbsent(key, () =>
           _MonthData(year: e.trip.date.year, month: e.trip.date.month));
@@ -376,7 +376,7 @@ class _CostScreenState extends State<CostScreen>
 
   List<_GroupData> get _locationData {
     final map = <String, _GroupData>{};
-    for (final e in _filteredEntries) {
+    for (final e in _filteredPastEntries) {
       final key = (e.trip.location?.isNotEmpty == true)
           ? e.trip.location!
           : '（未設定）';
@@ -388,7 +388,7 @@ class _CostScreenState extends State<CostScreen>
 
   List<_GroupData> get _shopData {
     final map = <String, _GroupData>{};
-    for (final e in _filteredEntries) {
+    for (final e in _filteredPastEntries) {
       final key = (e.trip.shopName?.isNotEmpty == true)
           ? e.trip.shopName!
           : '（未設定）';
@@ -780,7 +780,7 @@ class _CostScreenState extends State<CostScreen>
           const SizedBox(height: 8),
           _StatRow2(
             left:  _StatTile(label: '累計交通費',     value: _yen(_totalTransport), color: const Color(0xFFA78BFA)),
-            right: _StatTile(label: '潜った海の数', value: '${_filteredEntries.where((e) => e.trip.location != null && e.trip.location!.isNotEmpty).map((e) => e.trip.location!).toSet().length}箇所', color: const Color(0xFF7BBF00)),
+            right: _StatTile(label: '潜った海の数', value: '${_filteredPastEntries.where((e) => e.trip.location != null && e.trip.location!.isNotEmpty).map((e) => e.trip.location!).toSet().length}箇所', color: const Color(0xFF7BBF00)),
           ),
         ],
       ),
