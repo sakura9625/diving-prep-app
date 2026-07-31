@@ -510,12 +510,16 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       widget.trip.location     = newLocation;
       widget.trip.shopName     = newShop;
 
+      // Firestoreに直接保存（親のコールバックに頼らない）
+      await _db.collection('users').doc(_userId).collection('trips').doc(widget.trip.id).set(widget.trip.toJson());
+
       await Future.wait([
         _saveHistoryItem(newLocation, locationHistory, 'locations'),
         _saveHistoryItem(newShop, shopHistory, 'shops'),
       ]);
 
       if (!mounted) return;
+      setState(() {});
       widget.onTripUpdated?.call();
       _loadData(silent: true);
     });
@@ -528,7 +532,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   ) async {
     if (value == null || value.isEmpty || list.contains(value)) return;
     list.insert(0, value);
-    await _db.collection('history').doc(docId).set({'items': list});
+    await _db.collection('users').doc(_userId).collection('history').doc(docId).set({'items': list});
   }
 
   // ─── ヘルパー ─────────────────────────────────────
