@@ -571,7 +571,14 @@ class _TravelScreenState extends State<TravelScreen> {
           IconButton(
             icon: const Text('🔰', style: TextStyle(fontSize: 18)),
             tooltip: '使い方',
-            onPressed: () => HelpBottomSheet.show(context, HelpTab.travel),
+            onPressed: () async {
+              await HelpBottomSheet.show(context, HelpTab.travel);
+              final prefs = await SharedPreferences.getInstance();
+              final newVal = prefs.getBool('startFromMonday') ?? false;
+              if (newVal != _startFromMonday && mounted) {
+                setState(() => _startFromMonday = newVal);
+              }
+            },
           ),
         ],
       ),

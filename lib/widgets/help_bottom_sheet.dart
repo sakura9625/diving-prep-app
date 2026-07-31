@@ -7,8 +7,8 @@ class HelpBottomSheet extends StatelessWidget {
   const HelpBottomSheet({super.key, required this.tab});
   final HelpTab tab;
 
-  static void show(BuildContext context, HelpTab tab) {
-    showModalBottomSheet(
+  static Future<void> show(BuildContext context, HelpTab tab) {
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
