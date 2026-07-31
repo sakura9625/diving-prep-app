@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum HelpTab { travel, equipment, quest, report, template }
 
@@ -137,6 +138,7 @@ class HelpBottomSheet extends StatelessWidget {
           closing: '🤿 次の旅行の準備をしましょう！',
           items: [
             _HelpItem2('カレンダーで旅行日を管理できます', hasImage: true, imagePath: 'assets/screenshots/help_travel_calendar.png'),
+            _HelpItem2('週の始まりを設定できます', hasImage: false, widget: _CalendarStartToggle()),
             _HelpItem2('日付をタップすると旅行を追加できます', hasImage: false),
             _HelpItem2('旅行ごとに場所・ショップ・スーツ種別・宿泊有無を登録できます', hasImage: false),
             _HelpItem2('テンプレートを選ぶと準備リストが自動生成されます', hasImage: true, imagePath: 'assets/screenshots/help_travel_add_dialog.png'),
@@ -210,7 +212,8 @@ class _HelpItem2 {
   final bool isNote;
   final String? imagePath;
   final bool noTopMargin;
-  _HelpItem2(this.text, {required this.hasImage, this.isNote = false, this.imagePath, this.noTopMargin = false});
+  final Widget? widget;
+  _HelpItem2(this.text, {required this.hasImage, this.isNote = false, this.imagePath, this.noTopMargin = false, this.widget});
 }
 
 class _HelpItem extends StatelessWidget {
@@ -253,6 +256,10 @@ class _HelpItem extends StatelessWidget {
                 ),
               ],
             ),
+          if (item.widget != null) ...[
+            const SizedBox(height: 8),
+            item.widget!,
+          ],
           if (item.hasImage)
             Container(
               margin: EdgeInsets.fromLTRB(0, item.noTopMargin ? 0 : 10, 0, 0),
@@ -288,6 +295,57 @@ class _HelpItem extends StatelessWidget {
                     ),
                   ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarStartToggle extends StatefulWidget {
+  @override
+  State<_CalendarStartToggle> createState() => _CalendarStartToggleState();
+}
+
+class _CalendarStartToggleState extends State<_CalendarStartToggle> {
+  bool _startFromMonday = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _startFromMonday = prefs.getBool('startFromMonday') ?? false);
+  }
+
+  Future<void> _toggle(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('startFromMonday', value);
+    if (!mounted) return;
+    setState(() => _startFromMonday = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F8FC),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('週の始まりを月曜日にする',
+            style: TextStyle(fontSize: 14, color: Color(0xFF1A3A4A))),
+          Switch(
+            value: _startFromMonday,
+            onChanged: _toggle,
+            activeColor: const Color(0xFF4EC8E8),
+          ),
         ],
       ),
     );

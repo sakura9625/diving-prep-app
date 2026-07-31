@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/template_item.dart';
 import '../models/trip.dart';
@@ -28,6 +29,7 @@ class _TravelScreenState extends State<TravelScreen> {
   List<String> _savedShops = [];
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  bool _startFromMonday = false;
 
   @override
   void initState() {
@@ -38,9 +40,17 @@ class _TravelScreenState extends State<TravelScreen> {
   Future<void> _initUser() async {
     _userId = await UserService.getUserId();
     _isPremium = await PermissionService.isPremium();
+    final prefs = await SharedPreferences.getInstance();
+    _startFromMonday = prefs.getBool('startFromMonday') ?? false;
     _loadTrips();
     _loadTemplates();
     _loadHistory();
+  }
+
+  Future<void> _toggleStartDay(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('startFromMonday', value);
+    setState(() => _startFromMonday = value);
   }
 
   Future<void> _tryAddTrip({DateTime? initialDate}) async {
@@ -594,6 +604,7 @@ class _TravelScreenState extends State<TravelScreen> {
               focusedDay: _focusedDay,
               calendarFormat: CalendarFormat.month,
               availableCalendarFormats: const {CalendarFormat.month: '月'},
+              startingDayOfWeek: _startFromMonday ? StartingDayOfWeek.monday : StartingDayOfWeek.sunday,
               selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
               eventLoader: _tripsForDay,
               onDaySelected: _onDaySelected,
